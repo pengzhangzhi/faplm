@@ -83,9 +83,13 @@ You can reproduce the benchmarking by running the following command:
 ```bash
 pytest tests/benchmark.py
 ```
+# TODOs
+
+- Training script
+- Integrate FAESM into EMSFold
+
 
 # Appreciation
-
 
 - The Rotary code is inspired by [esm-efficient](https://github.com/uci-cbcl/esm-efficient)
 - The ESM modules and the SDPA attention module is inspired by [ESM](https://github.com/facebookresearch/esm) and [DPLM](https://github.com/bytedance/dplm).
