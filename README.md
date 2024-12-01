@@ -12,6 +12,15 @@ FAESM is a efficient PyTorch implementation of the [Evolutionary Scale Modeling 
   <img src="assets/figs/5-lines-of-Code-to-get-started!.png" alt="Figure" width="1000">
 </div>
 
+# Table of Contents
+
+- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Training [WIP]](#training-wip)
+  - [Benchmarking](#benchmarking)
+  - [Appreciation](#appreciation)
+  - [Citation](#citation)
 # Installation
 
 1. Install PyTorch 1.12 and above if you haven't: `pip install pytorch`.
