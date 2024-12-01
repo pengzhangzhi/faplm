@@ -1,15 +1,3 @@
-from typing import Optional
-from typing import List
-from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
-import torch
-import torch.nn as nn
-from torch.nn import functional as F
-from typing import List, Optional, Tuple, Union
-from tqdm import tqdm
-from transformers.models.esm.modeling_esm import *
-from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
-
-from faesm.utils import unpad
 flash_attn_installed = True
 try:
     from flash_attn import flash_attn_varlen_qkvpacked_func
@@ -20,6 +8,20 @@ except ImportError:
           By default we will use Pytorch SDPA attention, 
           which is lower than Flash Attention but better than official ESM. 
     """)
+from typing import Optional
+from typing import List
+from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+from typing import List, Optional, Tuple, Union
+from tqdm import tqdm
+from transformers.models.esm.modeling_esm import *
+from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
+from einops import rearrange
+from faesm.utils import unpad
+
+
     
 class FAEsmSelfAttention(EsmSelfAttention):
     def __init__(self, config,position_embedding_type=None):
@@ -444,49 +446,41 @@ class FAEsmModel(EsmModel):
         # input head_mask has shape [num_heads] or [num_hidden_layers x num_heads]
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
-
         embedding_output = self.embeddings(
-            input_ids=input_ids,
-            position_ids=position_ids,
-            attention_mask=attention_mask,
-            inputs_embeds=inputs_embeds,
-            past_key_values_length=past_key_values_length,
-        )
+                input_ids=input_ids,
+                position_ids=position_ids,
+                attention_mask=attention_mask,
+                inputs_embeds=inputs_embeds,
+                past_key_values_length=past_key_values_length,
+            )
+        
         self.config.use_fa &= flash_attn_installed
+        
         if self.config.use_fa:
-            # unpad embedding_output
-            embedding_output_unpad, cu_seqlens, max_seqlen, _, output_pad_fn = unpad(embedding_output, attention_mask)
-            encoder_outputs = self.encoder(
-                embedding_output_unpad,
-                cu_seqlens=cu_seqlens,
-                max_seqlen=max_seqlen,
-                attention_mask=extended_attention_mask,
-                head_mask=head_mask,
-                encoder_hidden_states=encoder_hidden_states,
-                encoder_attention_mask=encoder_extended_attention_mask,
-                past_key_values=past_key_values,
-                use_cache=use_cache,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
-            sequence_output = encoder_outputs[0]
-            # pad
-            sequence_output = output_pad_fn(sequence_output)
+            embedding_output, cu_seqlens, max_seqlen, _, output_pad_fn = unpad(embedding_output, attention_mask)
         else:
-            encoder_outputs = self.encoder(
-                embedding_output,
-                attention_mask=extended_attention_mask,
-                head_mask=head_mask,
-                encoder_hidden_states=encoder_hidden_states,
-                encoder_attention_mask=encoder_extended_attention_mask,
-                past_key_values=past_key_values,
-                use_cache=use_cache,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
-            sequence_output = encoder_outputs[0]
+            cu_seqlens = None
+            max_seqlen = None
+            output_pad_fn = lambda x: x
+        
+        encoder_outputs = self.encoder(
+            embedding_output,
+            cu_seqlens=cu_seqlens,
+            max_seqlen=max_seqlen,
+            attention_mask=extended_attention_mask,
+            head_mask=head_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_extended_attention_mask,
+            past_key_values=past_key_values,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+        sequence_output = encoder_outputs[0]
+            
+        sequence_output = output_pad_fn(sequence_output)
+        
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
 
         if not return_dict:
@@ -553,7 +547,7 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
     
     
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, use_fa=False, *model_args, **kwargs):
+    def from_pretrained(cls, pretrained_model_name_or_path, use_fa=True, *model_args, **kwargs):
         config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
         config.use_fa = use_fa
         model = cls(config, *model_args, **kwargs)
