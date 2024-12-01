@@ -1,6 +1,8 @@
 import os
+
 import torch
-from transformers import EsmTokenizer, EsmForMaskedLM
+from transformers import EsmForMaskedLM, EsmTokenizer
+
 from faesm.esm import *
 
 

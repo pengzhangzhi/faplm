@@ -1,10 +1,12 @@
 import os
+
+import matplotlib.pyplot as plt
 import pytest
 import torch
-from transformers import EsmTokenizer, EsmForMaskedLM
 from einops import rearrange
+from transformers import EsmForMaskedLM, EsmTokenizer
+
 from faesm.esm import FAEsmForMaskedLM
-import matplotlib.pyplot as plt
 from tests.utils import generate_random_esm2_inputs
 
 
@@ -17,8 +19,7 @@ def setup_output_dir():
 
 
 def plot_differences(data, title, ylabel, tokenizing_names, save_path=None):
-    """
-    Plot differences for logits and representations.
+    """Plot differences for logits and representations.
 
     Args:
         data (list): List of lists containing the differences for each tokenizing name.
@@ -59,10 +60,8 @@ def test_esm_vs_faesm_numeric(
     use_fa=True,
     dtype=torch.float16,
 ):
-    """
-    Test function to compare numeric differences between ESM and FAESM outputs,
-    and assert that the max and mean differences are within expected ranges.
-    """
+    """Test function to compare numeric differences between ESM and FAESM outputs, and assert that
+    the max and mean differences are within expected ranges."""
     results = {
         "max_diff_logits": {},
         "mean_diff_logits": {},
@@ -121,15 +120,9 @@ def test_esm_vs_faesm_numeric(
     max_logits_diff = max(results["max_diff_logits"].values())
     mean_logits_diff = max(results["mean_diff_logits"].values())
     assert max_logits_diff < 0.6, f"Max logits difference too large: {max_logits_diff}"
-    assert (
-        mean_logits_diff < 0.05
-    ), f"Mean logits difference too large: {mean_logits_diff}"
-    assert (
-        max_repr_diff < 0.1
-    ), f"Max representation difference too large: {max_repr_diff}"
-    assert (
-        mean_repr_diff < 0.05
-    ), f"Mean representation difference too large: {mean_repr_diff}"
+    assert mean_logits_diff < 0.05, f"Mean logits difference too large: {mean_logits_diff}"
+    assert max_repr_diff < 0.1, f"Max representation difference too large: {max_repr_diff}"
+    assert mean_repr_diff < 0.05, f"Mean representation difference too large: {mean_repr_diff}"
 
     # Save plots
     plot_differences(

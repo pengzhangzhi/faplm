@@ -1,6 +1,7 @@
-# Adapted from flash_attn trition based rotary to suppport variable sequence length
+# Adapted from flash_attn trition based rotary to support variable sequence length
 # https://github.com/Dao-AILab/flash-attention/blob/main/flash_attn/layers/rotary.py
 from typing import Tuple, Union
+
 import torch
 from flash_attn.ops.triton.rotary import apply_rotary
 
@@ -10,12 +11,8 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
     def forward(ctx, qkv, cos, sin, cu_seqlens, max_seqlen):
         q, k = qkv[:, 0], qkv[:, 1]
 
-        apply_rotary(
-            q, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True
-        )
-        apply_rotary(
-            k, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True
-        )
+        apply_rotary(q, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True)
+        apply_rotary(k, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True)
 
         ctx.save_for_backward(cos, sin, cu_seqlens)
         ctx.max_seqlen = max_seqlen
@@ -54,8 +51,7 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
 def apply_rotary_emb_qkv_(
     qkv, cos, sin, cu_seqlens: torch.Tensor, max_seqlen: int
 ) -> torch.Tensor:
-    """
-    Apply rotary embedding *inplace* to the first rotary_dim of Q and K.
+    """Apply rotary embedding *inplace* to the first rotary_dim of Q and K.
 
     Arguments:
         qkv: (batch_size * seqlen, 3, nheads, headdim)
@@ -69,8 +65,9 @@ def apply_rotary_emb_qkv_(
 
 
 class RotaryEmbedding(torch.nn.Module):
-    """
-    The rotary position embeddings from RoFormer_ (Su et. al).
+    """The rotary position embeddings from RoFormer_ (Su et.
+
+    al).
     """
 
     def __init__(self, dim: int, base=10000.0, pos_idx_in_fp32=True, device=None):
@@ -99,10 +96,7 @@ class RotaryEmbedding(torch.nn.Module):
     def _compute_inv_freq(self, device=None):
         return 1.0 / (
             self.base
-            ** (
-                torch.arange(0, self.dim, 2, device=device, dtype=torch.float32)
-                / self.dim
-            )
+            ** (torch.arange(0, self.dim, 2, device=device, dtype=torch.float32) / self.dim)
         )
 
     def _update_cos_sin_cache(self, seqlen, device=None, dtype=None):
@@ -139,15 +133,9 @@ class RotaryEmbedding(torch.nn.Module):
             self._sin_cached = torch.sin(freqs).to(dtype)
 
     def forward(
-        self,
-        qkv: torch.Tensor,
-        cu_seqlens: torch.Tensor,
-        max_seqlen: int,
-        *args,
-        **kwargs
+        self, qkv: torch.Tensor, cu_seqlens: torch.Tensor, max_seqlen: int, *args, **kwargs
     ) -> torch.Tensor:
-        """
-        Apply rotary embedding *inplace*.
+        """Apply rotary embedding *inplace*.
 
         Arguments:
             qkv: (batch * seqlen, 3, nheads, headdim) query, key, value.

@@ -1,12 +1,14 @@
-import torch
-from transformers import EsmTokenizer, EsmForMaskedLM
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pytest
-from tests.utils import generate_random_esm2_inputs
-from faesm.esm import FAEsmForMaskedLM
 import time
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
+import seaborn as sns
+import torch
+from transformers import EsmForMaskedLM, EsmTokenizer
+
+from faesm.esm import FAEsmForMaskedLM
+from tests.utils import generate_random_esm2_inputs
 
 # Set Seaborn theme and professional settings
 sns.set_theme(style="white")  # Remove grid by using "white"
@@ -54,18 +56,13 @@ def benchmark_inference_time(f, *args, **kwargs):
         )
     ],
 )
-def test_esm_vs_faesm_benchmark(
-    model_version, batch_size, dtype, max_seq_lengths, repeats
-):
+def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_lengths, repeats):
     tokenizer = EsmTokenizer.from_pretrained(model_version)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     esm = EsmForMaskedLM.from_pretrained(model_version).to(device).to(dtype).eval()
     fa_esm = (
-        FAEsmForMaskedLM.from_pretrained(model_version, use_fa=True)
-        .to(device)
-        .to(dtype)
-        .eval()
+        FAEsmForMaskedLM.from_pretrained(model_version, use_fa=True).to(device).to(dtype).eval()
     )
 
     esm_memory_usage, fa_esm_memory_usage = [], []
@@ -117,13 +114,10 @@ def test_esm_vs_faesm_benchmark(
         (1 - (fa / esm)) * 100 for fa, esm in zip(fa_esm_memory_usage, esm_memory_usage)
     ]
     time_reduction = [
-        (1 - (fa / esm)) * 100
-        for fa, esm in zip(fa_esm_inference_times, esm_inference_times)
+        (1 - (fa / esm)) * 100 for fa, esm in zip(fa_esm_inference_times, esm_inference_times)
     ]
 
-    fig, axes = plt.subplots(
-        1, 2, figsize=(20, 8)
-    )  # Larger figure for better resolution
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))  # Larger figure for better resolution
 
     # Left Plot: Memory Benchmark
     ax1 = axes[0]

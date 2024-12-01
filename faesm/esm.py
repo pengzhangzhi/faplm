@@ -5,23 +5,43 @@ except ImportError:
     flash_attn_installed = False
     print(
         """
-          [Warning] Flash Attention not installed. 
-          By default we will use Pytorch SDPA attention, 
-          which is lower than Flash Attention but better than official ESM. 
+          [Warning] Flash Attention not installed.
+          By default we will use Pytorch SDPA attention,
+          which is lower than Flash Attention but better than official ESM.
     """
     )
-from typing import Optional
-from typing import List
-from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
+import logging
+from typing import List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-from typing import List, Optional, Tuple, Union
-from tqdm import tqdm
-from transformers.models.esm.modeling_esm import *
-from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
 from einops import rearrange
+from torch.nn import functional as F
+from tqdm import tqdm
+from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
+from transformers.models.esm.modeling_esm import (
+    BaseModelOutputWithPastAndCrossAttentions,
+    BaseModelOutputWithPoolingAndCrossAttentions,
+    EsmAttention,
+    EsmContactPredictionHead,
+    EsmEmbeddings,
+    EsmEncoder,
+    EsmForMaskedLM,
+    EsmIntermediate,
+    EsmLayer,
+    EsmLMHead,
+    EsmModel,
+    EsmOutput,
+    EsmPooler,
+    EsmPreTrainedModel,
+    EsmSelfAttention,
+    EsmSelfOutput,
+)
+
+from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
 from faesm.utils import unpad
+
+logger = logging.getLogger(__name__)
 
 
 class FAEsmSelfAttention(EsmSelfAttention):
@@ -124,7 +144,6 @@ class FAEsmSelfAttention(EsmSelfAttention):
         output_attentions: Optional[bool] = False,
         **kwargs,
     ) -> Tuple[torch.Tensor]:
-        print(f"[debug] flash attention forward")
         assert cu_seqlens is not None, "cu_seqlens must be provided for FlashAttention"
         assert max_seqlen is not None, "max_seqlen must be provided for FlashAttention"
         q = self.query(hidden_states) * self.attention_head_size**-0.5
@@ -135,13 +154,9 @@ class FAEsmSelfAttention(EsmSelfAttention):
             (q, k, v),
         )
         qkv = torch.stack((q, k, v), dim=1)  # (n, 3, h, d)
-        qkv = self.rotary_embeddings(
-            qkv=qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen
-        )
+        qkv = self.rotary_embeddings(qkv=qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
 
-        out = flash_attn_varlen_qkvpacked_func(
-            qkv, cu_seqlens, max_seqlen, softmax_scale=1.0
-        )
+        out = flash_attn_varlen_qkvpacked_func(qkv, cu_seqlens, max_seqlen, softmax_scale=1.0)
         out = rearrange(out, "n h d -> n (h d)")
         outputs = (out,)
         return outputs
@@ -180,9 +195,7 @@ class FAEsmAttention(EsmAttention):
             output_attentions=output_attentions,
         )
         attention_output = self.output(self_outputs[0], hidden_states)
-        outputs = (attention_output,) + self_outputs[
-            1:
-        ]  # add attentions if we output them
+        outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
         return outputs
 
 
@@ -217,9 +230,7 @@ class FAEsmLayer(EsmLayer):
         output_attentions=False,
     ):
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
-        self_attn_past_key_value = (
-            past_key_value[:2] if past_key_value is not None else None
-        )
+        self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
         self_attention_outputs = self.attention(
             hidden_states=hidden_states,
             cu_seqlens=cu_seqlens,
@@ -249,9 +260,7 @@ class FAEsmLayer(EsmLayer):
                 )
 
             # cross_attn cached key/values tuple is at positions 3,4 of past_key_value tuple
-            cross_attn_past_key_value = (
-                past_key_value[-2:] if past_key_value is not None else None
-            )
+            cross_attn_past_key_value = past_key_value[-2:] if past_key_value is not None else None
             cross_attention_outputs = self.crossattention(
                 attention_output,
                 attention_mask,
@@ -284,12 +293,8 @@ class FAEsmEncoder(EsmEncoder):
     def __init__(self, config):
         nn.Module.__init__(self)
         self.config = config
-        self.layer = nn.ModuleList(
-            [FAEsmLayer(config) for _ in range(config.num_hidden_layers)]
-        )
-        self.emb_layer_norm_after = nn.LayerNorm(
-            config.hidden_size, eps=config.layer_norm_eps
-        )
+        self.layer = nn.ModuleList([FAEsmLayer(config) for _ in range(config.num_hidden_layers)])
+        self.emb_layer_norm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.gradient_checkpointing = False
 
     def forward(
@@ -422,18 +427,14 @@ class FAEsmModel(EsmModel):
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPoolingAndCrossAttentions]:
         output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.config.output_attentions
+            output_attentions if output_attentions is not None else self.config.output_attentions
         )
         output_hidden_states = (
             output_hidden_states
             if output_hidden_states is not None
             else self.config.output_hidden_states
         )
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if self.config.is_decoder:
             use_cache = use_cache if use_cache is not None else self.config.use_cache
@@ -481,9 +482,7 @@ class FAEsmModel(EsmModel):
             encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
             if encoder_attention_mask is None:
                 encoder_attention_mask = torch.ones(encoder_hidden_shape, device=device)
-            encoder_extended_attention_mask = self.invert_attention_mask(
-                encoder_attention_mask
-            )
+            encoder_extended_attention_mask = self.invert_attention_mask(encoder_attention_mask)
         else:
             encoder_extended_attention_mask = encoder_attention_mask
 
@@ -530,9 +529,7 @@ class FAEsmModel(EsmModel):
 
         sequence_output = output_pad_fn(sequence_output)
 
-        pooled_output = (
-            self.pooler(sequence_output) if self.pooler is not None else None
-        )
+        pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
 
         if not return_dict:
             return (sequence_output, pooled_output) + encoder_outputs[1:]
@@ -599,9 +596,7 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
         return result
 
     @classmethod
-    def from_pretrained(
-        cls, pretrained_model_name_or_path, use_fa=True, *model_args, **kwargs
-    ):
+    def from_pretrained(cls, pretrained_model_name_or_path, use_fa=True, *model_args, **kwargs):
         config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
         config.use_fa = use_fa
         model = cls(config, *model_args, **kwargs)

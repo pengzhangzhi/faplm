@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
@@ -37,20 +38,14 @@ def attn_bias_from_alibi_slopes(
     device = slopes.device
     slopes = rearrange(slopes, "b h -> b h 1 1")
     if causal:
-        return (
-            torch.arange(-seqlen_k + 1, 1, device=device, dtype=torch.float32) * slopes
-        )
+        return torch.arange(-seqlen_k + 1, 1, device=device, dtype=torch.float32) * slopes
     else:
-        row_idx = rearrange(
-            torch.arange(seqlen_q, device=device, dtype=torch.long), "s -> s 1"
-        )
+        row_idx = rearrange(torch.arange(seqlen_q, device=device, dtype=torch.long), "s -> s 1")
         col_idx = torch.arange(seqlen_k, device=device, dtype=torch.long)
         if key_leftpad is not None:
             key_leftpad = rearrange(key_leftpad, "b -> b 1 1 1")
             col_idx = repeat(col_idx, "s -> b 1 1 s", b=key_leftpad.shape[0])
-            col_idx = torch.where(
-                col_idx >= key_leftpad, col_idx - key_leftpad, 2**32
-            )
+            col_idx = torch.where(col_idx >= key_leftpad, col_idx - key_leftpad, 2**32)
         sk = (
             seqlen_k
             if key_padding_mask is None
@@ -68,20 +63,15 @@ def attn_bias_from_alibi_slopes(
 def generate_random_padding_mask(max_seqlen, batch_size, device, mode="random"):
     assert mode in ["full", "random", "third"]
     if mode == "full":
-        lengths = torch.full(
-            (batch_size, 1), max_seqlen, device=device, dtype=torch.int32
-        )
+        lengths = torch.full((batch_size, 1), max_seqlen, device=device, dtype=torch.int32)
     elif mode == "random":
         lengths = torch.randint(
             max(1, max_seqlen - 20), max_seqlen + 1, (batch_size, 1), device=device
         )
     elif mode == "third":
-        lengths = torch.randint(
-            max_seqlen // 3, max_seqlen + 1, (batch_size, 1), device=device
-        )
+        lengths = torch.randint(max_seqlen // 3, max_seqlen + 1, (batch_size, 1), device=device)
     padding_mask = (
-        repeat(torch.arange(max_seqlen, device=device), "s -> b s", b=batch_size)
-        < lengths
+        repeat(torch.arange(max_seqlen, device=device), "s -> b s", b=batch_size) < lengths
     )
     return padding_mask
 
@@ -98,9 +88,7 @@ def unpad(input, padding_mask):
     input_unpad, indices_input, cu_seqlens_input, max_seqlen_input, _ = unpad_input(
         input, padding_mask
     )
-    output_pad_fn = lambda output_unpad: pad_input(
-        output_unpad, indices_input, batch_size, seqlen
-    )
+    output_pad_fn = lambda output_unpad: pad_input(output_unpad, indices_input, batch_size, seqlen)
     return input_unpad, cu_seqlens_input, max_seqlen_input, input, output_pad_fn
 
 
@@ -128,9 +116,7 @@ def generate_qkv(
     assert v.shape == (batch_size, seqlen_k, nheads_k, d)
 
     if query_padding_mask is not None:
-        q_unpad, indices_q, cu_seqlens_q, max_seqlen_q, _ = unpad_input(
-            q, query_padding_mask
-        )
+        q_unpad, indices_q, cu_seqlens_q, max_seqlen_q, _ = unpad_input(q, query_padding_mask)
         output_pad_fn = lambda output_unpad: pad_input(
             output_unpad, indices_q, batch_size, seqlen_q
         )
@@ -149,9 +135,7 @@ def generate_qkv(
         )
 
     if key_padding_mask is not None:
-        k_unpad, indices_k, cu_seqlens_k, max_seqlen_k, _ = unpad_input(
-            k, key_padding_mask
-        )
+        k_unpad, indices_k, cu_seqlens_k, max_seqlen_k, _ = unpad_input(k, key_padding_mask)
         v_unpad, _, _, _, _ = unpad_input(v, key_padding_mask)
     else:
         k_unpad = rearrange(k, "b s h d -> (b s) h d")
@@ -171,9 +155,7 @@ def generate_qkv(
         qkv_unpad = torch.stack([q_unpad, k_unpad, v_unpad], dim=1)
         qkv = torch.stack([q, k, v], dim=2)
         if query_padding_mask is not None:
-            dqkv_pad_fn = lambda dqkv_unpad: pad_input(
-                dqkv_unpad, indices_q, batch_size, seqlen_q
-            )
+            dqkv_pad_fn = lambda dqkv_unpad: pad_input(dqkv_unpad, indices_q, batch_size, seqlen_q)
         else:
             dqkv_pad_fn = lambda dqkv_unpad: rearrange(
                 dqkv_unpad, "(b s) t h d -> b s t h d", b=batch_size
@@ -191,9 +173,7 @@ def generate_qkv(
         kv = torch.stack([k, v], dim=2)
         dq_pad_fn = output_pad_fn
         if key_padding_mask is not None:
-            dkv_pad_fn = lambda dkv_unpad: pad_input(
-                dkv_unpad, indices_k, batch_size, seqlen_k
-            )
+            dkv_pad_fn = lambda dkv_unpad: pad_input(dkv_unpad, indices_k, batch_size, seqlen_k)
         else:
             dkv_pad_fn = lambda dkv_unpad: rearrange(
                 dkv_unpad, "(b s) t h d -> b s t h d", b=batch_size
@@ -214,13 +194,9 @@ def generate_qkv(
     else:
         dq_pad_fn = output_pad_fn
         if key_padding_mask is not None:
-            dk_pad_fn = lambda dk_unpad: pad_input(
-                dk_unpad, indices_k, batch_size, seqlen_k
-            )
+            dk_pad_fn = lambda dk_unpad: pad_input(dk_unpad, indices_k, batch_size, seqlen_k)
         else:
-            dk_pad_fn = lambda dk_unpad: rearrange(
-                dk_unpad, "(b s) h d -> b s h d", b=batch_size
-            )
+            dk_pad_fn = lambda dk_unpad: rearrange(dk_unpad, "(b s) h d -> b s h d", b=batch_size)
         return (
             q_unpad.detach().requires_grad_(),
             k_unpad.detach().requires_grad_(),
@@ -247,9 +223,7 @@ def construct_local_mask(
     device=None,
     key_leftpad=None,
 ):
-    row_idx = rearrange(
-        torch.arange(seqlen_q, device=device, dtype=torch.long), "s -> s 1"
-    )
+    row_idx = rearrange(torch.arange(seqlen_q, device=device, dtype=torch.long), "s -> s 1")
     col_idx = torch.arange(seqlen_k, device=device, dtype=torch.long)
     if key_leftpad is not None:
         key_leftpad = rearrange(key_leftpad, "b -> b 1 1 1")
@@ -330,9 +304,7 @@ def attention_ref(
         scores = scores.tanh()
         scores = scores * softcap
     if key_padding_mask is not None:
-        scores.masked_fill_(
-            rearrange(~key_padding_mask, "b s -> b 1 1 s"), float("-inf")
-        )
+        scores.masked_fill_(rearrange(~key_padding_mask, "b s -> b 1 1 s"), float("-inf"))
     if window_size[0] >= 0 or window_size[1] >= 0:
         local_mask = construct_local_mask(
             seqlen_q,
@@ -349,15 +321,11 @@ def attention_ref(
     attention = torch.softmax(scores, dim=-1).to(v.dtype)
     # Some rows might be completely masked out so we fill them with zero instead of NaN
     if window_size[0] >= 0 or window_size[1] >= 0:
-        attention = attention.masked_fill(
-            torch.all(local_mask, dim=-1, keepdim=True), 0.0
-        )
+        attention = attention.masked_fill(torch.all(local_mask, dim=-1, keepdim=True), 0.0)
     # We want to mask here so that the attention matrix doesn't have any NaNs
     # Otherwise we'll get NaN in dV
     if query_padding_mask is not None:
-        attention = attention.masked_fill(
-            rearrange(~query_padding_mask, "b s -> b 1 s 1"), 0.0
-        )
+        attention = attention.masked_fill(rearrange(~query_padding_mask, "b s -> b 1 s 1"), 0.0)
     dropout_scaling = 1.0 / (1 - dropout_p)
     # attention_drop = attention.masked_fill(~dropout_mask, 0.0) * dropout_scaling
     # output = torch.einsum('bhts,bshd->bthd', attention_drop , v)
@@ -487,6 +455,7 @@ def convert_flash_attn_S_to_softmax(
     window_size=(-1, -1),  # -1 means infinite window size
 ):
     """FlashAttention stores the S matrix in a different way.
+
     Arguments:
         S: (batch_size, nheads, seqlen_q_rounded, seqlen_k_rounded)
         query_padding_mask: (batch_size, seqlen_q_rounded)
@@ -515,25 +484,17 @@ def convert_flash_attn_S_to_softmax(
     # Need to zero out things not in attention_mask in case S was initialized with random values
     # and some of those values aren't overwritten.
     seqlen_q_og = (
-        query_padding_mask.shape[-1]
-        if query_padding_mask is not None
-        else seqlen_q_rounded
+        query_padding_mask.shape[-1] if query_padding_mask is not None else seqlen_q_rounded
     )
     if query_padding_mask is not None:
-        query_padding_mask = F.pad(
-            query_padding_mask, (0, seqlen_q_rounded - seqlen_q_og)
-        )
+        query_padding_mask = F.pad(query_padding_mask, (0, seqlen_q_rounded - seqlen_q_og))
         S_converted = S_converted.masked_fill(
             rearrange(~query_padding_mask, "b s -> b 1 s 1"), 0.0
         )
-    seqlen_k_og = (
-        key_padding_mask.shape[-1] if key_padding_mask is not None else seqlen_k
-    )
+    seqlen_k_og = key_padding_mask.shape[-1] if key_padding_mask is not None else seqlen_k
     if key_padding_mask is not None:
         key_padding_mask = F.pad(key_padding_mask, (0, seqlen_k_rounded - seqlen_k_og))
-        S_converted = S_converted.masked_fill(
-            rearrange(~key_padding_mask, "b s -> b 1 1 s"), 0.0
-        )
+        S_converted = S_converted.masked_fill(rearrange(~key_padding_mask, "b s -> b 1 1 s"), 0.0)
     S_converted = F.pad(S_converted, (0, 0, 0, seqlen_q_og - seqlen_q_rounded))
     S_converted = F.pad(S_converted, (0, seqlen_k_og - seqlen_k_rounded))
     return S_converted[:, :, :seqlen_q, :seqlen_k]
@@ -568,9 +529,7 @@ def normalize_flash_attn_S(
     seqlen_k = k.shape[1]
     scores = torch.einsum("bthd,bshd->bhts", q / math.sqrt(head_dim), k)
     if key_padding_mask is not None:
-        scores.masked_fill_(
-            rearrange(~key_padding_mask, "b s -> b 1 1 s"), float("-inf")
-        )
+        scores.masked_fill_(rearrange(~key_padding_mask, "b s -> b 1 1 s"), float("-inf"))
     if window_size[0] >= 0 or window_size[1] >= 0:
         local_mask = construct_local_mask(
             seqlen_q,
@@ -590,12 +549,8 @@ def normalize_flash_attn_S(
     # lse could be -inf (i.e. all values in scores are -inf), and we want to set those to inf
     # so that when we do torch.exp(m - lse), we get 0.0 instead of NaN.
     lse[lse == float("-inf")] = float("inf")
-    scores_max_block = torch.stack(
-        [torch.amax(s, dim=-1) for s in scores_block], dim=-1
-    )
-    cummax_block = (
-        torch.cummax(scores_max_block.flip(-1), dim=-1).values.flip(-1).unbind(dim=-1)
-    )
+    scores_max_block = torch.stack([torch.amax(s, dim=-1) for s in scores_block], dim=-1)
+    cummax_block = torch.cummax(scores_max_block.flip(-1), dim=-1).values.flip(-1).unbind(dim=-1)
     attn_unnorm_block = attn_unnorm.split(block_size_n, dim=-1)
     attn_norm = torch.cat(
         [
