@@ -10,10 +10,12 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
     def forward(ctx, qkv, cos, sin, cu_seqlens, max_seqlen):
         q, k = qkv[:, 0], qkv[:, 1]
 
-        apply_rotary(q, cos, sin, cu_seqlens=cu_seqlens,
-                     max_seqlen=max_seqlen, inplace=True)
-        apply_rotary(k, cos, sin, cu_seqlens=cu_seqlens,
-                     max_seqlen=max_seqlen, inplace=True)
+        apply_rotary(
+            q, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True
+        )
+        apply_rotary(
+            k, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, inplace=True
+        )
 
         ctx.save_for_backward(cos, sin, cu_seqlens)
         ctx.max_seqlen = max_seqlen
@@ -25,17 +27,33 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         max_seqlen = ctx.max_seqlen
         cos, sin, cu_seqlens = ctx.saved_tensors
 
-        dq, dk = dqkv[:, 0], dqkv[:,  1]
+        dq, dk = dqkv[:, 0], dqkv[:, 1]
 
-        apply_rotary(dq, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen,
-                     inplace=True, conjugate=True)
-        apply_rotary(dk, cos, sin, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen,
-                     inplace=True, conjugate=True)
+        apply_rotary(
+            dq,
+            cos,
+            sin,
+            cu_seqlens=cu_seqlens,
+            max_seqlen=max_seqlen,
+            inplace=True,
+            conjugate=True,
+        )
+        apply_rotary(
+            dk,
+            cos,
+            sin,
+            cu_seqlens=cu_seqlens,
+            max_seqlen=max_seqlen,
+            inplace=True,
+            conjugate=True,
+        )
 
         return dqkv, None, None, None, None
 
 
-def apply_rotary_emb_qkv_(qkv, cos, sin, cu_seqlens: torch.Tensor, max_seqlen: int) -> torch.Tensor:
+def apply_rotary_emb_qkv_(
+    qkv, cos, sin, cu_seqlens: torch.Tensor, max_seqlen: int
+) -> torch.Tensor:
     """
     Apply rotary embedding *inplace* to the first rotary_dim of Q and K.
 
@@ -73,7 +91,7 @@ class RotaryEmbedding(torch.nn.Module):
         self.base = float(base)
         self.pos_idx_in_fp32 = pos_idx_in_fp32
         inv_freq = self._compute_inv_freq(device)
-        self.register_buffer("inv_freq", inv_freq)    
+        self.register_buffer("inv_freq", inv_freq)
         self._seq_len_cached = 0
         self._cos_cached = None
         self._sin_cached = None
@@ -81,7 +99,10 @@ class RotaryEmbedding(torch.nn.Module):
     def _compute_inv_freq(self, device=None):
         return 1.0 / (
             self.base
-            ** (torch.arange(0, self.dim, 2, device=device, dtype=torch.float32) / self.dim)
+            ** (
+                torch.arange(0, self.dim, 2, device=device, dtype=torch.float32)
+                / self.dim
+            )
         )
 
     def _update_cos_sin_cache(self, seqlen, device=None, dtype=None):
@@ -110,15 +131,21 @@ class RotaryEmbedding(torch.nn.Module):
                 else:
                     inv_freq = self.inv_freq
             else:
-                t = torch.arange(seqlen, device=device,
-                                 dtype=self.inv_freq.dtype)
+                t = torch.arange(seqlen, device=device, dtype=self.inv_freq.dtype)
                 inv_freq = self.inv_freq
 
             freqs = torch.outer(t, inv_freq)
             self._cos_cached = torch.cos(freqs).to(dtype)
             self._sin_cached = torch.sin(freqs).to(dtype)
 
-    def forward(self, qkv: torch.Tensor, cu_seqlens: torch.Tensor, max_seqlen: int, *args, **kwargs) -> torch.Tensor:
+    def forward(
+        self,
+        qkv: torch.Tensor,
+        cu_seqlens: torch.Tensor,
+        max_seqlen: int,
+        *args,
+        **kwargs
+    ) -> torch.Tensor:
         """
         Apply rotary embedding *inplace*.
 
@@ -129,11 +156,12 @@ class RotaryEmbedding(torch.nn.Module):
         Return:
             qkv: (batch_size * seqlen, 3, nheads, headdim)
         """
-        self._update_cos_sin_cache(
-            max_seqlen, device=qkv.device, dtype=qkv.dtype)
+        self._update_cos_sin_cache(max_seqlen, device=qkv.device, dtype=qkv.dtype)
 
         return apply_rotary_emb_qkv_(
             qkv,
-            self._cos_cached, self._sin_cached,
-            cu_seqlens=cu_seqlens, max_seqlen=max_seqlen
+            self._cos_cached,
+            self._sin_cached,
+            cu_seqlens=cu_seqlens,
+            max_seqlen=max_seqlen,
         )
