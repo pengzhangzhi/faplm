@@ -1,6 +1,6 @@
 <div align="center">
 
-# FAESM: A Drop-in Efficient Pytorch Implementation of ESM
+# FAESM: A Drop-in Efficient Pytorch Implementation of ESM2
 </div>
 
 FAESM is a efficient PyTorch implementation of the [Evolutionary Scale Modeling (ESM)](https://github.com/facebookresearch/esm) family, which is a family of protein language models (pLMs) that can be used for various protein sequence analysis tasks. FAESM is designed to be more efficient than the official ESM implementation, which can save up to 60% of memory usage and 70% of inference time. The key features of FAESM are:
@@ -14,7 +14,7 @@ FAESM is a efficient PyTorch implementation of the [Evolutionary Scale Modeling 
 
 # Table of Contents
 
-- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm)
+- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM2](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm)
   - [Installation](#installation)
   - [Usage](#usage)
     - [Training [WIP]](#training-wip)
