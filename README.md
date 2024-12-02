@@ -16,13 +16,15 @@
 
 # Table of Contents
 
-- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM2](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm)
-  - [Installation](#installation)
-  - [Usage](#usage)
+- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM2](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm2)
+- [Table of Contents](#table-of-contents)
+- [Installation](#installation)
+- [Usage](#usage)
     - [Training \[WIP\]](#training-wip)
-  - [Benchmarking](#benchmarking)
-  - [Appreciation](#appreciation)
-  - [Citation](#citation)
+- [Benchmarking](#benchmarking)
+- [TODOs](#todos)
+- [Appreciation](#appreciation)
+- [Citation](#citation)
 
 # Installation
 
@@ -39,6 +41,12 @@ Having trouble installing flash attention but still want to use it? A workaround
 3. Install FAESM from github:
 
 ```bash
+# if you want to use flash attention
+pip install faesm[flash_attn]
+```
+
+```bash
+# if you want to forego flash attention and just use SDPA
 pip install faesm
 ```
 
