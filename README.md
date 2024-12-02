@@ -107,7 +107,7 @@ Please cite this repo if you use it in your work.
 
 ```bibtex
 @misc{faesm2024,
-  author       = {Fred Zhangzhi Peng and contributors},
+  author       = {Fred Zhangzhi Peng,Pranam Chatterjee, and contributors},
   title        = {FAESM: An efficient PyTorch implementation of Evolutionary Scale Modeling (ESM)},
   year         = {2024},
   howpublished = {\url{https://github.com/pengzhangzhi/faesm}},
