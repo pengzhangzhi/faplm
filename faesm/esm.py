@@ -5,6 +5,7 @@
 flash_attn_installed = True
 try:
     from flash_attn import flash_attn_varlen_qkvpacked_func
+    from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
 except ImportError:
     flash_attn_installed = False
     print(
@@ -42,7 +43,7 @@ from transformers.models.esm.modeling_esm import (
     EsmSelfOutput,
 )
 
-from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
+
 from faesm.utils import unpad
 
 logger = logging.getLogger(__name__)
