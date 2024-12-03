@@ -589,6 +589,7 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
+            output_hidden_states=output_hidden_states, # For the hidden states
         )
         sequence_output = outputs[0]
         logits = self.lm_head(sequence_output)
@@ -596,6 +597,7 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
         result = {
             "logits": logits,
             "last_hidden_state": sequence_output,
+            "hidden_states": [x.unsqueeze(0) for x in outputs.hidden_states], # Add a batch dimension
         }
         return result
 

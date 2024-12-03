@@ -73,6 +73,14 @@ print("Repr shape:", outputs['last_hidden_state'].shape)  # (batch_size, sequenc
 # Step 5: start the repo if the code works for u!
 ```
 
+### ESMFold with FAESM
+
+You can use FAESM for ESMFold as well. An example code can be found at `scripts/esmfold.py`. You can run the script as follows:
+
+```bash
+python faesmfold.py 
+```
+
 ### Training \[WIP\]
 
 Working on an example training script for MLM training on Uniref50. For now, you can use the same training logic as how you would train the official ESM since the FAESM has no difference in the model architecture.
