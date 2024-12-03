@@ -80,9 +80,12 @@ It's recommended to use the flash attention for training. Because in the forward
 
 # Benchmarking
 
-Below we benchmark the peak memory usage and inference time of FAESM with the official ESM2 and show that FAESM can save the memory usage up to 60% and inference time up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
+Below  is the comparison of peak memory usage and inference time of FAESM with the official ESM2 and shows that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
 
 ![benchmark](assets/figs/benchmark.png)
+
+Below [@ANaka](https://github.com/ANaka) compares the SDFA implementation vs. official ESM2 (see his [PR](https://github.com/pengzhangzhi/faesm/pull/3)), where we can still get ~30% reduction by just pure pytorch, not too bad :) 
+![image](https://github.com/user-attachments/assets/5e9c3686-884c-4dd6-913f-d32fd158c6cd)
 
 You can reproduce the benchmarking by running the following command:
 
