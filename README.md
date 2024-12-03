@@ -80,6 +80,7 @@ It's recommended to use the flash attention for training. Because in the forward
 
 # Benchmarking
 
+### FAESM2 vs. Official ESM2
 Below  is the comparison of peak memory usage and inference time of FAESM with the official ESM2 and shows that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
 
 ![benchmark](assets/figs/benchmark.png)
