@@ -7,9 +7,12 @@ requirements = [
     "setuptools",
     "torch",
     "einops",
-    "flash_attn",
     "transformers",
 ]
+
+extras_require = {
+    'flash_attn': ['flash_attn'],
+}
 
 
 setup(
@@ -23,5 +26,6 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=requirements,
+    extras_require=extras_require,
     test_suite="tests",
 )
