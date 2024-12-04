@@ -113,6 +113,10 @@ pytest tests/test_compare_esm.py
 
 This project started as a mutual disappointment with [Alex Tong(@atong01)](https://github.com/atong01) about why there is no efficient implementation of ESM (wasted a lot compute in training pLMs :(. He later helped me debugged the precision errors in my implementation and organize this repo. In the process, I talked @MuhammedHasan regarding his ESM-efficent implementation (see the issues [1](https://github.com/uci-cbcl/esm-efficient/issues/3) and [2](https://github.com/uci-cbcl/esm-efficient/issues/5)), and also Tri Tao about flash attention (see the [issue](https://github.com/Dao-AILab/flash-attention/issues/1359)). Of course shoutout to the ESM teams for creating the ESM family. None of the pieces of code would be possible without their help.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=pengzhangzhi/faesm&type=Date)](https://star-history.com/#pengzhangzhi/faesm&Date)
+
 # Citation
 
 Please cite this repo if you use it in your work.
