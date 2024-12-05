@@ -11,13 +11,20 @@ requirements = [
 ]
 
 extras_require = {
-    'flash_attn': ['flash_attn'],
+    "flash_attn": ["flash_attn"],
 }
 
-
+# requirements for testing
+extras_require["test"] = [
+    "pytest",
+    "numpy",
+    "biopython",
+    "matplotlib",
+    "seaborn",
+]
 setup(
     name="faesm",
-    version="0.0.4",
+    version="0.1.0",
     keywords=["LLM", "PLM", "protein language model"],
     long_description=readme,
     long_description_content_type="text/markdown",

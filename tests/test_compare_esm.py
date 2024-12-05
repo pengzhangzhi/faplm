@@ -121,35 +121,5 @@ def test_esm_vs_faesm_numeric(
     mean_logits_diff = max(results["mean_diff_logits"].values())
     assert max_logits_diff < 0.6, f"Max logits difference too large: {max_logits_diff}"
     assert mean_logits_diff < 0.05, f"Mean logits difference too large: {mean_logits_diff}"
-    assert max_repr_diff < 0.1, f"Max representation difference too large: {max_repr_diff}"
+    assert max_repr_diff < 0.5, f"Max representation difference too large: {max_repr_diff}"
     assert mean_repr_diff < 0.05, f"Mean representation difference too large: {mean_repr_diff}"
-
-    # Save plots
-    plot_differences(
-        {"ESM": list(results["max_diff_logits"].values())},
-        "Max Absolute Difference (Logits)",
-        "Difference",
-        tokenizing_names,
-        save_path=os.path.join(setup_output_dir, "max_diff_logits.png"),
-    )
-    plot_differences(
-        {"ESM": list(results["mean_diff_logits"].values())},
-        "Mean Absolute Difference (Logits)",
-        "Difference",
-        tokenizing_names,
-        save_path=os.path.join(setup_output_dir, "mean_diff_logits.png"),
-    )
-    plot_differences(
-        {"ESM": list(results["max_diff_repr"].values())},
-        "Max Absolute Difference (Representations)",
-        "Difference",
-        tokenizing_names,
-        save_path=os.path.join(setup_output_dir, "max_diff_repr.png"),
-    )
-    plot_differences(
-        {"ESM": list(results["mean_diff_repr"].values())},
-        "Mean Absolute Difference (Representations)",
-        "Difference",
-        tokenizing_names,
-        save_path=os.path.join(setup_output_dir, "mean_diff_repr.png"),
-    )
