@@ -24,7 +24,7 @@ extras_require["test"] = [
 ]
 setup(
     name="faesm",
-    version="0.0.4",
+    version="0.1.0",
     keywords=["LLM", "PLM", "protein language model"],
     long_description=readme,
     long_description_content_type="text/markdown",
