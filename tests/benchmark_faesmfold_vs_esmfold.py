@@ -9,6 +9,7 @@ import torch
 from transformers import EsmForMaskedLM, EsmTokenizer, EsmForProteinFolding
 from tqdm import tqdm
 from faesm.esm import FAEsmForMaskedLM
+from faesm.esmfold import FAEsmForProteinFolding
 import random
 
 
@@ -55,23 +56,13 @@ def benchmark_inference_time(f, *args, **kwargs):
     torch.cuda.synchronize()
     return time.time() - start_time
 
-
-def get_faesmfold(device):
-
-    model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1", device_map="cpu").eval()
-    model.esm = None
-    model.esm = FAEsmForMaskedLM.from_pretrained("facebook/esm2_t36_3B_UR50D", use_fa=True).to(torch.float16).to(device).eval()
-    model = model.to(device)
-    return model
-
-
 @pytest.mark.parametrize(
     "dtype,max_seq_lengths,repeats",
     [
         (
             torch.float16,
-            [100,300,400],
-            10,
+            [100,200,300,400,500],
+            3,
         )
     ],
 )
@@ -91,10 +82,7 @@ def test_esmfold_vs_faesmfold_benchmark(dtype, max_seq_lengths, repeats):
         for _ in tqdm(range(repeats)):
             esmfold = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1").to(device).eval()
             esmfold.esm = esmfold.esm.to(dtype)
-            fa_esmfold = get_faesmfold(device)
-
             def esm_forward():
-                
                 esmfold.infer_pdb(inputs)
             esmfold.to(device)
             esm_memory_fold.append(benchmark_torch_memory(esm_forward))
@@ -102,6 +90,7 @@ def test_esmfold_vs_faesmfold_benchmark(dtype, max_seq_lengths, repeats):
             esmfold.to("cpu")
             torch.cuda.empty_cache()
 
+            fa_esmfold = FAEsmForProteinFolding.from_pretrained("facebook/esmfold_v1").to(device).eval()
             def fa_esm_forward():
                 fa_esmfold.esm.half()
                 fa_esmfold.infer_pdb(inputs)

@@ -73,12 +73,36 @@ print("Repr shape:", outputs['last_hidden_state'].shape)  # (batch_size, sequenc
 # Step 5: start the repo if the code works for u!
 ```
 
-### ESMFold with FAESM
+### ProGen2
 
-You can use FAESM for ESMFold as well. An example code can be found at `scripts/esmfold.py`. You can run the script as follows:
+```python
+import torch
+from faesm.progen2 import ProGenForCausalLM
+from transformers import AutoTokenizer
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval()
+tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
 
-```bash
-python faesmfold.py 
+# sequence = "1" + "ACDEFGHIKLMNPQRSTVWY" * 50 + "2" # 1002 token
+
+sequence = "2GFLPFRGADEGLAAREAATLAARGTAARAYREDSWAVPVPRGLLGDLTARVAALGAASPPPADPLAVTLDLHHVTAEVALTTVLDAATLVHGQTRVLSAEDAAEAATAAAAATEAYLERLQDFVLFMSASVRVWRRGNAAGATGPEWDQWYTVADRDALGSAPTHLAVLGRQADALCHFVLDRVAWGTCGTPLWSGDEDLGNVVATFAGYADRLATAPRDLIM1"
+
+inputs = tokenizer(sequence, return_tensors="pt").to(device)
+
+with torch.no_grad():
+  logits = model(inputs.input_ids, labels=inputs.input_ids).logits
+
+logits = logits[0][:-1, ...]
+target = inputs.input_ids[0, 1:]
+
+# remove unused logits
+first_token, last_token = 5, 29
+logits = logits[:, first_token:(last_token+1)]
+target = target - first_token
+
+ce_eval = torch.nn.functional.cross_entropy(input=logits.view(-1, logits.size(-1)), target=target.view(-1), reduction="mean").item()
+print(ce_eval)
+assert abs(ce_eval - 2.4) < 0.1
 ```
 
 ### Training \[WIP\]
