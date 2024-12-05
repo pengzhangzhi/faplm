@@ -32,9 +32,7 @@ def rotate_half(x, interleaved=False):
         return torch.cat((-x2, x1), dim=-1)
     else:
         x1, x2 = x[..., ::2], x[..., 1::2]
-        return rearrange(
-            torch.stack((-x2, x1), dim=-1), "... d two -> ... (d two)", two=2
-        )
+        return rearrange(torch.stack((-x2, x1), dim=-1), "... d two -> ... (d two)", two=2)
 
 
 def apply_rotary_emb_torch(x, cos, sin, interleaved=False, _inplace=False):
@@ -59,8 +57,9 @@ def apply_rotary_emb_torch(x, cos, sin, interleaved=False, _inplace=False):
 
 
 class RotaryEmbeddingTorch(torch.nn.Module):
-    """
-    The rotary position embeddings from RoFormer_ (Su et. al).
+    """The rotary position embeddings from RoFormer_ (Su et.
+
+    al).
     A crucial insight from the method is that the query and keys are
     transformed by rotation matrices which depend on the relative positions.
     Other implementations are available in the Rotary Transformer repo_ and in
@@ -120,19 +119,14 @@ class RotaryEmbeddingTorch(torch.nn.Module):
         self.register_buffer("inv_freq", inv_freq, persistent=False)
         arange = torch.arange(0, self.dim, 2, device=self.device, dtype=torch.float32)
         scale = (
-            (arange + 0.4 * self.dim) / (1.4 * self.dim)
-            if self.scale_base is not None
-            else None
+            (arange + 0.4 * self.dim) / (1.4 * self.dim) if self.scale_base is not None else None
         )
         self.register_buffer("scale", scale)
 
     def _compute_inv_freq(self, device=None):
         return 1 / (
             self.base
-            ** (
-                torch.arange(0, self.dim, 2, device=device, dtype=torch.float32)
-                / self.dim
-            )
+            ** (torch.arange(0, self.dim, 2, device=device, dtype=torch.float32) / self.dim)
         )
 
     def _update_cos_sin_cache(self, seqlen, device=None, dtype=None):
@@ -174,9 +168,7 @@ class RotaryEmbeddingTorch(torch.nn.Module):
                 self._sin_cached = torch.sin(freqs).to(dtype)
             else:
                 power = (
-                    torch.arange(
-                        seqlen, dtype=self.scale.dtype, device=self.scale.device
-                    )
+                    torch.arange(seqlen, dtype=self.scale.dtype, device=self.scale.device)
                     - seqlen // 2
                 ) / self.scale_base
                 scale = self.scale.to(device=power.device) ** power.unsqueeze(-1)
@@ -195,9 +187,7 @@ class RotaryEmbeddingTorch(torch.nn.Module):
         seqlen_offset: can be used in generation where the qkv being passed in is only the last
         token in the batch.
         """
-        self._update_cos_sin_cache(
-            q.shape[1] + seqlen_offset, device=q.device, dtype=q.dtype
-        )
+        self._update_cos_sin_cache(q.shape[1] + seqlen_offset, device=q.device, dtype=q.dtype)
         assert self._cos_cached is not None
         assert self._sin_cached is not None
         if self.scale is None:

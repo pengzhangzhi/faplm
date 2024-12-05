@@ -1,10 +1,12 @@
 import time
+
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import pytest
+import seaborn as sns
 import torch
 from esm.models.esmc import ESMC
+
 from faesm.esmc import ESMC as FAESMC
 
 # Set Seaborn theme and professional settings
@@ -26,10 +28,15 @@ plt.rcParams.update(
 
 
 # Helper Functions
-def generate_random_esm2_inputs(tokenizer, batch_size=3, min_seq_length=5, max_seq_length=10, device="cuda"):
-    random_lengths = torch.randint(min_seq_length, max_seq_length + 1, (batch_size,), device=device)
+def generate_random_esm2_inputs(
+    tokenizer, batch_size=3, min_seq_length=5, max_seq_length=10, device="cuda"
+):
+    random_lengths = torch.randint(
+        min_seq_length, max_seq_length + 1, (batch_size,), device=device
+    )
     random_tokens = [
-        torch.randint(low=4, high=29, size=(length,), device=device).tolist() for length in random_lengths
+        torch.randint(low=4, high=29, size=(length,), device=device).tolist()
+        for length in random_lengths
     ]
     sequences = ["".join(tokenizer.convert_ids_to_tokens(seq)) for seq in random_tokens]
     esm_input = tokenizer.batch_encode_plus(
@@ -222,5 +229,9 @@ def test_benchmark_esmc(setup_models):
         fa_esm_inference_times,
         esm_inference_times,
     ):
-        assert fa_mem <= esm_mem, f"Seq {seq_length}: FAESMC {fa_mem:.3f} GB > ESMC {esm_mem:.3f} GB!"
-        assert fa_time <= esm_time, f"Seq {seq_length}: FAESMC {fa_time:.3f} s > ESMC {esm_time:.3f} s!"
+        assert (
+            fa_mem <= esm_mem
+        ), f"Seq {seq_length}: FAESMC {fa_mem:.3f} GB > ESMC {esm_mem:.3f} GB!"
+        assert (
+            fa_time <= esm_time
+        ), f"Seq {seq_length}: FAESMC {fa_time:.3f} s > ESMC {esm_time:.3f} s!"

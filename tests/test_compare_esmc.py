@@ -1,10 +1,11 @@
 import torch
-from faesm.esmc import ESMC as FAESMC
 from esm.models.esmc import ESMC
 from esm.sdk.api import ESMProtein, LogitsConfig
 
+from faesm.esmc import ESMC as FAESMC
+
 # Define the sequence
-seq = 'MPGWFKKAWYGLASLLSFSSFILIIVALVVPHWLSGKILCQTGVDLVNATDRELVKFIGDIYYGLFRGCKVRQCGLGGRQSQFTIFPHLVKELNAGLHVMILLLLFLALALALVSMGFAILNMIQVPYRAVSGPGGICLWNVLAGGVVALAIASFVAAVKFHDLTERIANFQEKLFQFVVVEEQYEESFWICVASASAHAANLVVVAISQIPLPEIKTKIEEATVTAEDILY'
+seq = "MPGWFKKAWYGLASLLSFSSFILIIVALVVPHWLSGKILCQTGVDLVNATDRELVKFIGDIYYGLFRGCKVRQCGLGGRQSQFTIFPHLVKELNAGLHVMILLLLFLALALALVSMGFAILNMIQVPYRAVSGPGGICLWNVLAGGVVALAIASFVAAVKFHDLTERIANFQEKLFQFVVVEEQYEESFWICVASASAHAANLVVVAISQIPLPEIKTKIEEATVTAEDILY"
 sequence = [seq]
 
 # Flash Attention Implementation
@@ -36,4 +37,4 @@ embeddings_diff = torch.abs(embeddings_flash - embeddings_official).max()
 print("Max absolute error in logits:", logits_diff.item())
 print("Max absolute error in embeddings:", embeddings_diff.item())
 assert logits_diff < 1, f"Logits diff: {logits_diff}"
-assert embeddings_diff < 0.1 , f"Embeddings diff: {embeddings_diff}"
+assert embeddings_diff < 0.1, f"Embeddings diff: {embeddings_diff}"

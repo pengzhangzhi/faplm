@@ -11,7 +11,7 @@ requirements = [
 ]
 
 extras_require = {
-    'flash_attn': ['flash_attn'],
+    "flash_attn": ["flash_attn"],
 }
 
 # requirements for testing

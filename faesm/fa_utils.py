@@ -1,6 +1,7 @@
 # Adapted from flash_attn trition based rotary to support variable sequence length
 # https://github.com/Dao-AILab/flash-attention/blob/main/flash_attn/layers/rotary.py
 import math
+from typing import Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -17,10 +18,6 @@ from flash_attn import (
 from flash_attn.bert_padding import pad_input, unpad_input
 from flash_attn.flash_attn_interface import _get_block_size_n
 from flash_attn.layers.rotary import apply_rotary_emb
-
-from typing import Tuple, Union
-
-import torch
 from flash_attn.ops.triton.rotary import apply_rotary
 
 
@@ -171,6 +168,7 @@ class RotaryEmbedding(torch.nn.Module):
             cu_seqlens=cu_seqlens,
             max_seqlen=max_seqlen,
         )
+
 
 MAX_HEADDIM_SM8x = 192
 

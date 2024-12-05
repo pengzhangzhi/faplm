@@ -91,6 +91,7 @@ print(output.embeddings.shape)
 
 Working on an example training script for MLM training on Uniref50. For now, you can use the same training logic as how you would train the official ESM since the FAESM has no difference in the model architecture.
 It's recommended to use the flash attention for training. Because in the forward pass, it unpads the input sequences to remove all the padding tokens, which 1) speeds up the training & reduces the memory usage and 2) it doesn't require batching sequences of similar length to avoid padding. Also, SDPA is still a good alternative if you can't install flash attention as used in [DPLM](https://github.com/bytedance/dplm).
+
 # Benchmarking
 
 ### FAESM vs. Official ESM2
@@ -123,7 +124,7 @@ Below we show the scaling of FAESM-C with the official ESM-C, using FAESM-C we c
 Run the following script to reproduce the benchmarking:
 
 ```python
-pytest tests/benchmark_esmc.py 
+pytest tests/benchmark_esmc.py
 ```
 
 Run the script to test the errors between FAESM-C and the official ESM-C implementation:
@@ -152,6 +153,7 @@ This project started as a mutual disappointment with [Alex Tong(@atong01)](https
 # License
 
 This work is licensed under the MIT license. However, it contains altered and unaltered portions of code licensed under MIT, Apache 2.0, and Cabrian Open License Agreement.
+
 - ESM: MIT Licensed
 - DPLM: [Apache 2.0 Licensed](https://github.com/bytedance/dplm/blob/main/LICENSE)
 - ESMC: [See ESM Licensing](https://github.com/evolutionaryscale/esm/blob/main/LICENSE.md) in particular the [Cambrian Open License Agreement](https://www.evolutionaryscale.ai/policies/cambrian-open-license-agreement)
