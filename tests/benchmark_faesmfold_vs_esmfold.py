@@ -1,3 +1,4 @@
+
 import time
 
 import matplotlib.pyplot as plt
@@ -5,10 +6,22 @@ import numpy as np
 import pytest
 import seaborn as sns
 import torch
-from transformers import EsmForMaskedLM, EsmTokenizer
-
+from transformers import EsmForMaskedLM, EsmTokenizer, EsmForProteinFolding
+from tqdm import tqdm
 from faesm.esm import FAEsmForMaskedLM
-# from tests.utils import generate_random_esm2_inputs
+from faesm.esmfold import FAEsmForProteinFolding
+import random
+
+
+def generate_random_protein_sequences(mini_length, max_length):
+    """Generate random protein sequences."""
+    length = random.randint(mini_length, max_length)
+    return "".join(
+        [
+            random.choice("ACDEFGHIKLMNPQRSTVWY")
+            for _ in range(length)
+        ]
+    )
 
 # Set Seaborn theme and professional settings
 sns.set_theme(style="white")  # Remove grid by using "white"
@@ -27,27 +40,6 @@ plt.rcParams.update(
     }
 )
 
-def generate_random_esm2_inputs(
-    tokenizer, batch_size=3, min_seq_length=5, max_seq_length=10, device="cuda"
-):
-    """Generate random ESM2 model inputs."""
-    random_lengths = torch.randint(
-        min_seq_length, max_seq_length + 1, (batch_size,), device=device
-    )
-    random_tokens = [
-        torch.randint(low=4, high=29, size=(length,), device=device).tolist()
-        for length in random_lengths
-    ]
-    sequences = ["".join(tokenizer.convert_ids_to_tokens(seq)) for seq in random_tokens]
-    esm_input = tokenizer.batch_encode_plus(
-        sequences,
-        add_special_tokens=True,
-        padding=True,
-        truncation=True,
-        return_tensors="pt",
-    )
-    esm_input = {k: v.to(device) for k, v in esm_input.items()}
-    return esm_input
 
 def benchmark_torch_memory(f, *args, **kwargs):
     torch.cuda.reset_peak_memory_stats()
@@ -64,56 +56,50 @@ def benchmark_inference_time(f, *args, **kwargs):
     torch.cuda.synchronize()
     return time.time() - start_time
 
-
 @pytest.mark.parametrize(
-    "model_version,batch_size,dtype,max_seq_lengths,repeats",
+    "dtype,max_seq_lengths,repeats",
     [
         (
-            "facebook/esm2_t33_650M_UR50D",
-            8,
             torch.float16,
-            [100, 200, 300, 400, 500, 600, 700],
-            10,
+            [100,200,300,400,500],
+            3,
         )
     ],
 )
-def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_lengths, repeats):
-    tokenizer = EsmTokenizer.from_pretrained(model_version)
+def test_esmfold_vs_faesmfold_benchmark(dtype, max_seq_lengths, repeats):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    esm = EsmForMaskedLM.from_pretrained(model_version).to(device).to(dtype).eval()
-    fa_esm = (
-        FAEsmForMaskedLM.from_pretrained(model_version, use_fa=True).to(device).to(dtype).eval()
-    )
 
     esm_memory_usage, fa_esm_memory_usage = [], []
     esm_inference_times, fa_esm_inference_times = [], []
 
     for seq_length in max_seq_lengths:
-        inputs = generate_random_esm2_inputs(
-            tokenizer,
-            batch_size=batch_size,
-            min_seq_length=50,
-            max_seq_length=seq_length,
-            device=device,
-        )
+        inputs = generate_random_protein_sequences(mini_length=seq_length-50, max_length=seq_length)
 
         esm_memory_fold, fa_esm_memory_fold = [], []
         esm_time_fold, fa_esm_time_fold = [], []
 
-        for _ in range(repeats):
-
+        for _ in tqdm(range(repeats)):
+            esmfold = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1").to(device).eval()
+            esmfold.esm = esmfold.esm.to(dtype)
             def esm_forward():
-                esm(**inputs, output_hidden_states=False)
-
+                esmfold.infer_pdb(inputs)
+            esmfold.to(device)
             esm_memory_fold.append(benchmark_torch_memory(esm_forward))
             esm_time_fold.append(benchmark_inference_time(esm_forward))
+            esmfold.to("cpu")
+            torch.cuda.empty_cache()
 
+            fa_esmfold = FAEsmForProteinFolding.from_pretrained("facebook/esmfold_v1").to(device).eval()
             def fa_esm_forward():
-                fa_esm(inputs["input_ids"])
+                fa_esmfold.esm.half()
+                fa_esmfold.infer_pdb(inputs)
 
+            fa_esmfold.to(device)
             fa_esm_memory_fold.append(benchmark_torch_memory(fa_esm_forward))
             fa_esm_time_fold.append(benchmark_inference_time(fa_esm_forward))
+            fa_esmfold.to("cpu")
+            torch.cuda.empty_cache()
 
         esm_memory_usage.append(np.mean(esm_memory_fold))
         fa_esm_memory_usage.append(np.mean(fa_esm_memory_fold))
@@ -121,10 +107,10 @@ def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_length
         fa_esm_inference_times.append(np.mean(fa_esm_time_fold))
 
         print(
-            f"Seq Len: {seq_length}, Avg ESM Mem: {esm_memory_usage[-1]:.3f} GB, Avg FAESM Mem: {fa_esm_memory_usage[-1]:.3f} GB"
+            f"Seq Len: {seq_length}, Avg ESMFold Mem: {esm_memory_usage[-1]:.3f} GB, Avg FAESMFold Mem: {fa_esm_memory_usage[-1]:.3f} GB"
         )
         print(
-            f"Seq Len: {seq_length}, Avg ESM Time: {esm_inference_times[-1]:.3f} s, Avg FAESM Time: {fa_esm_inference_times[-1]:.3f} s"
+            f"Seq Len: {seq_length}, Avg ESMFold Time: {esm_inference_times[-1]:.3f} s, Avg FAESMFold Time: {fa_esm_inference_times[-1]:.3f} s"
         )
 
     max_seq_lengths_filtered = max_seq_lengths[1:]
@@ -145,14 +131,14 @@ def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_length
     ax1.plot(
         max_seq_lengths,
         esm_memory_usage,
-        label="ESM Memory Usage (GB)",
+        label="ESMFold Memory Usage (GB)",
         marker="o",
         color=color_palette[0],
     )
     ax1.plot(
         max_seq_lengths,
         fa_esm_memory_usage,
-        label="FAESM Memory Usage (GB)",
+        label="FAESMFold Memory Usage (GB)",
         marker="o",
         color=color_palette[1],
     )
@@ -181,14 +167,14 @@ def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_length
     ax2.plot(
         max_seq_lengths_filtered,
         esm_inference_times,
-        label="ESM Inference Time (s)",
+        label="ESMFold Inference Time (s)",
         marker="o",
         color=color_palette[0],
     )
     ax2.plot(
         max_seq_lengths_filtered,
         fa_esm_inference_times,
-        label="FAESM Inference Time (s)",
+        label="FAESMFold Inference Time (s)",
         marker="o",
         color=color_palette[1],
     )
@@ -213,11 +199,11 @@ def test_esm_vs_faesm_benchmark(model_version, batch_size, dtype, max_seq_length
     ax2.set_title("Inference Time Benchmark")
 
     plt.suptitle(
-        f"Model Version: {model_version}\nBatch Size: {batch_size}, Data Type: {dtype}, Averaged over {repeats} runs",
+        f"Data Type: {dtype}, Averaged over {repeats} runs",
         fontsize=20,
     )
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.savefig("benchmark.png", dpi=300)  # High resolution
+    plt.savefig("esmfold_benchmark.png", dpi=300)  # High resolution
     plt.close()
 
     for seq_length, fa_mem, esm_mem, fa_time, esm_time in zip(

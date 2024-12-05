@@ -589,14 +589,19 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
+            output_hidden_states=output_hidden_states, # For the hidden states
         )
         sequence_output = outputs[0]
         logits = self.lm_head(sequence_output)
 
-        result = {
-            "logits": logits,
-            "last_hidden_state": sequence_output,
-        }
+        if outputs.hidden_states is not None:
+            result = {
+                "logits": logits,
+                "last_hidden_state": sequence_output,
+                "hidden_states": [x.unsqueeze(0) for x in outputs.hidden_states],
+            }
+        else:
+            result = {"logits": logits, "last_hidden_state": sequence_output}
         return result
 
     @classmethod
