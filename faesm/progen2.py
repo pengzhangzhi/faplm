@@ -306,7 +306,7 @@ class ProGenFlashAttention2(ProGenAttention):
         output_attentions: Optional[bool] = False,
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
         hidden_states = hidden_states.to(torch.float16)
-        B, T, C = hidden_states.size() # batch size, sequence length, embedding dimensionality (n_embd)
+        # B, T, C = hidden_states.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         qkv = self.qkv_proj(hidden_states)
         mp_num = 8
@@ -359,25 +359,6 @@ class ProGenFlashAttention2(ProGenAttention):
             present = (key, value)
         else:
             present = None
- 
-        # breakpoint()
-        # B, H, L, D
-        # attn_output = _flash_attention_forward(
-        #     query.half().permute(0, 2, 1, 3),
-        #     key.half().permute(0, 2, 1, 3),
-        #     value.half().permute(0, 2, 1, 3),
-        #     attention_mask,
-        #     seq_len,
-        #     dropout=self.attn_dropout.p,
-        #     is_causal=True,
-        #     use_top_left_mask=self._flash_attn_uses_top_left_mask,
-        # )
-
-        # qkv = torch.stack([query, key, value], dim=3).permute(0, 2, 3, 1, 4).half()
-        # attn_output = flash_attn_qkvpacked_func(
-        #     qkv,
-        #     dropout_p=self.attn_dropout.p,
-        #     causal=True)
 
         attn_output = flash_attn_func(
             query.half().permute(0, 2, 1, 3),

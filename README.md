@@ -73,6 +73,8 @@ print("Repr shape:", outputs['last_hidden_state'].shape)  # (batch_size, sequenc
 # Step 5: start the repo if the code works for u!
 ```
 
+For generative protein language like ProGen2:
+
 ### ProGen2
 
 ```python
@@ -80,10 +82,9 @@ import torch
 from faesm.progen2 import ProGenForCausalLM
 from transformers import AutoTokenizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval()
+# Avilable model from HF: ["jinyuan22/ProGen2-small", "jinyuan22/ProGen2-base", "jinyuan22/ProGen2-xlarge"]
+model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval() 
 tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
-
-# sequence = "1" + "ACDEFGHIKLMNPQRSTVWY" * 50 + "2" # 1002 token
 
 sequence = "2GFLPFRGADEGLAAREAATLAARGTAARAYREDSWAVPVPRGLLGDLTARVAALGAASPPPADPLAVTLDLHHVTAEVALTTVLDAATLVHGQTRVLSAEDAAEAATAAAAATEAYLERLQDFVLFMSASVRVWRRGNAAGATGPEWDQWYTVADRDALGSAPTHLAVLGRQADALCHFVLDRVAWGTCGTPLWSGDEDLGNVVATFAGYADRLATAPRDLIM1"
 
@@ -102,7 +103,7 @@ target = target - first_token
 
 ce_eval = torch.nn.functional.cross_entropy(input=logits.view(-1, logits.size(-1)), target=target.view(-1), reduction="mean").item()
 print(ce_eval)
-assert abs(ce_eval - 2.4) < 0.1
+assert abs(ce_eval - 2.4) < 0.1 # 2.4 is the reference ce for the official progen2-small
 ```
 
 ### Training \[WIP\]
@@ -112,7 +113,7 @@ It's recommended to use the flash attention for training. Because in the forward
 
 # Benchmarking
 
-Below  is the comparison of peak memory usage and inference time of FAESM with the official ESM2 and shows that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
+Below is the comparison of peak memory usage and inference time of FAESM with the official ESM2 and shows that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
 
 ![benchmark](assets/figs/benchmark.png)
 
