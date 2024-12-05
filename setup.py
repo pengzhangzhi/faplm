@@ -14,7 +14,14 @@ extras_require = {
     'flash_attn': ['flash_attn'],
 }
 
-
+# requirements for testing
+extras_require["test"] = [
+    "pytest",
+    "numpy",
+    "biopython",
+    "matplotlib",
+    "seaborn",
+]
 setup(
     name="faesm",
     version="0.0.4",
