@@ -5,15 +5,15 @@
 flash_attn_installed = True
 try:
     from flash_attn import flash_attn_varlen_qkvpacked_func
-    from faesm.rotary import RotaryEmbedding as FAEsmRotaryEmbedding
-    from faesm.utils import unpad
+    from faesm.fa_utils import RotaryEmbedding as FAEsmRotaryEmbedding
+    from faesm.fa_utils import unpad
 except ImportError:
     flash_attn_installed = False
     print(
         """
           [Warning] Flash Attention not installed.
           By default we will use Pytorch SDPA attention,
-          which is lower than Flash Attention but better than official ESM.
+          which is slower than Flash Attention but better than official ESM.
     """
     )
 import logging
