@@ -10,7 +10,6 @@ from faesm.progen2 import ProGenForCausalLM as FAProGenForCausalLM
 from tests.progen2 import ProGenForCausalLM
 
 
-
 # Set Seaborn theme and professional settings
 sns.set_theme(style="white")  # Remove grid by using "white"
 color_palette = sns.color_palette("Set2")  # Professional color palette
@@ -28,16 +27,14 @@ plt.rcParams.update(
     }
 )
 
+
 def generate_random_protein_sequences(mini_length, max_length):
     import random
+
     """Generate random protein sequences."""
     length = random.randint(mini_length, max_length)
-    return "".join(
-        [
-            random.choice("ACDEFGHIKLMNPQRSTVWY")
-            for _ in range(length)
-        ]
-    )
+    return "".join([random.choice("ACDEFGHIKLMNPQRSTVWY") for _ in range(length)])
+
 
 def benchmark_torch_memory(f, *args, **kwargs):
     torch.cuda.reset_peak_memory_stats()
@@ -59,18 +56,21 @@ def benchmark_inference_time(f, *args, **kwargs):
     "model_version,dtype,max_seq_lengths,repeats",
     [
         (
-            "jinyuan22/ProGen2-xlarge",
+            "jinyuan22/ProGen2-base",
             torch.float16,
-            [200, 300, 400, 500, 600, 700, 800, 1000],
-            3,
+            [600, 900, 1200, 1500, 1800, 2000],
+            5,
         )
     ],
 )
 def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, repeats):
     tokenizer = AutoTokenizer.from_pretrained(model_version)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device1 = "cuda" if torch.cuda.is_available() else "cpu"
+    # device2 = "cuda:1" if torch.cuda.is_available() else "cpu"
 
-    progen2 = ProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
+    progen2 = (
+        ProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
+    )
     fa_progen2 = (
         FAProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
     )
@@ -79,8 +79,11 @@ def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, r
     progen2_inference_times, fa_progen2_inference_times = [], []
 
     for seq_length in max_seq_lengths:
-        sequence = generate_random_protein_sequences(mini_length=seq_length-50, max_length=seq_length)
-        inputs = tokenizer(sequence, return_tensors="pt").to(device)
+        sequence = generate_random_protein_sequences(
+            mini_length=seq_length - 50, max_length=seq_length
+        )
+        inputs1 = tokenizer(sequence, return_tensors="pt").to(device1)
+        # inputs2 = tokenizer(sequence, return_tensors="pt").to(device1)
 
         progen2_memory_fold, fa_progen2_memory_fold = [], []
         progen2_time_fold, fa_progen2_time_fold = [], []
@@ -88,15 +91,17 @@ def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, r
         for _ in range(repeats):
 
             def progen2_forward():
-                progen2(inputs.input_ids)
-            progen2.to(device)
+                progen2(inputs1.input_ids)
+
+            progen2.to(device1)
             progen2_memory_fold.append(benchmark_torch_memory(progen2_forward))
             progen2_time_fold.append(benchmark_inference_time(progen2_forward))
             progen2.to("cpu")
 
             def fa_progen2_forward():
-                fa_progen2(inputs.input_ids)
-            fa_progen2.to(device)
+                fa_progen2(inputs1.input_ids)
+
+            fa_progen2.to(device1)
             fa_progen2_memory_fold.append(benchmark_torch_memory(fa_progen2_forward))
             fa_progen2_time_fold.append(benchmark_inference_time(fa_progen2_forward))
             fa_progen2.to("cpu")
@@ -118,13 +123,17 @@ def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, r
     fa_progen2_inference_times = fa_progen2_inference_times[1:]
 
     memory_reduction = [
-        (1 - (fa / progen2)) * 100 for fa, progen2 in zip(fa_progen2_memory_usage, progen2_memory_usage)
+        (1 - (fa / progen2)) * 100
+        for fa, progen2 in zip(fa_progen2_memory_usage, progen2_memory_usage)
     ]
     time_reduction = [
-        (1 - (fa / progen2)) * 100 for fa, progen2 in zip(fa_progen2_inference_times, progen2_inference_times)
+        (1 - (fa / progen2)) * 100
+        for fa, progen2 in zip(fa_progen2_inference_times, progen2_inference_times)
     ]
 
-    fig, axes = plt.subplots(1, 2, figsize=(20, 8))  # Larger figure for better resolution
+    fig, axes = plt.subplots(
+        1, 2, figsize=(20, 8)
+    )  # Larger figure for better resolution
 
     # Left Plot: Memory Benchmark
     ax1 = axes[0]

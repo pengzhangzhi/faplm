@@ -16,8 +16,9 @@
 # Modified forward-pass implementation based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/gptj/modeling_gptj.py
 
 from typing import Optional, Tuple, Union
-
+from pdb import set_trace
 import torch
+import time
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss
@@ -119,7 +120,7 @@ def fixed_pos_embedding(x, seq_dim=1, seq_len=None):
         .to(x.device)
         .float()
     )
-    return torch.sin(sinusoid_inp).half(), torch.cos(sinusoid_inp).half()
+    return torch.sin(sinusoid_inp), torch.cos(sinusoid_inp)
 
 
 def rotate_every_two(x):
@@ -176,7 +177,6 @@ class ProGenAttention(nn.Module):
     def _split_heads(self, x, n_head, dim_head, mp_num=4):
         reshaped = x.reshape(x.shape[:-1] + (n_head // mp_num, dim_head))
         reshaped = reshaped.reshape(x.shape[:-2] + (-1,) + reshaped.shape[-1:])
-        # x = x.rearrange("b s m (l d)-> b s (m l) d", m=mp_num, l=dim_head*n_head//mp_num, d=dim_head)
         return reshaped
 
     def _merge_heads(self, tensor, num_attention_heads, attn_head_size):
@@ -184,11 +184,9 @@ class ProGenAttention(nn.Module):
         Merges attn_head_size dim and num_attn_heads dim into n_ctx
         """
         if len(tensor.shape) == 5:
-            # tensor = tensor.permute(0, 1, 3, 2, 4).contiguous()
-            tensor = rearrange(tensor, "a b c d e -> a b d c e")
+            tensor = tensor.permute(0, 1, 3, 2, 4).contiguous()
         elif len(tensor.shape) == 4:
-            # tensor = tensor.permute(0, 2, 1, 3).contiguous()
-            tensor = rearrange(tensor, "a b c d -> a c b d")
+            tensor = tensor.permute(0, 2, 1, 3).contiguous()
         else:
             raise ValueError(
                 f"Input tensor rank should be one of [4, 5], but is: {len(tensor.shape)}"
@@ -266,6 +264,8 @@ class ProGenAttention(nn.Module):
         value = self._split_heads(
             value, self.num_attention_heads, self.head_dim, mp_num=mp_num
         )
+        # set_trace()
+
         value = value.permute(0, 2, 1, 3)
 
         seq_len = key.shape[1]
@@ -330,11 +330,6 @@ class ProGenFlashAttention2(ProGenAttention):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _split_heads(self, x, n_head, dim_head, mp_num=4):
-        return rearrange(
-            x, "b s m (l d) -> b s (m l) d", m=mp_num, l=n_head // mp_num, d=dim_head
-        )
-
     def forward(
         self,
         hidden_states: Optional[Tuple[torch.FloatTensor]],
@@ -346,27 +341,35 @@ class ProGenFlashAttention2(ProGenAttention):
         use_cache: Optional[bool] = False,
         output_attentions: Optional[bool] = False,
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
-        # hidden_states = hidden_states.to(torch.float16)
+        hidden_states = hidden_states.to(torch.float16)
         # B, T, C = hidden_states.size() # batch size, sequence length, embedding dimensionality (n_embd)
-
+        # set_trace()
+        t1_0 = time.time()
         qkv = self.qkv_proj(hidden_states)
+        # qkv torch.Size([1, 422, 4608])
         mp_num = 8
-        qkv_split = rearrange(
-            qkv, "b s (m d) -> b s m d", m=mp_num, d=self.embed_dim * 3 // mp_num
-        )
-
+        qkv_split = qkv.reshape(qkv.shape[:-1] + (mp_num, -1))
+        # qkv_split torch.Size([1, 422, 8, 576])
         local_dim = self.head_dim * self.num_attention_heads // mp_num
         query, value, key = torch.split(qkv_split, local_dim, dim=-1)
-
+        # query torch.Size([1, 422, 8, 192])
         query = self._split_heads(
             query, self.num_attention_heads, self.head_dim, mp_num=mp_num
         )
+        # query torch.Size([1, 422, 16, 96]) # B, T, H, D
+
         key = self._split_heads(
             key, self.num_attention_heads, self.head_dim, mp_num=mp_num
         )
+
         value = self._split_heads(
             value, self.num_attention_heads, self.head_dim, mp_num=mp_num
         )
+        t1_1 = time.time()
+        print(f"qkv_split: {t1_1 - t1_0}")
+
+        t2_1 = time.time()
+        value = value.permute(0, 2, 1, 3)
 
         seq_len = key.shape[1]
         offset = 0
@@ -393,6 +396,9 @@ class ProGenFlashAttention2(ProGenAttention):
             key = apply_rotary_pos_emb(key, sincos, offset=offset)
             query = apply_rotary_pos_emb(query, sincos, offset=offset)
 
+        key = key.permute(0, 2, 1, 3)
+        query = query.permute(0, 2, 1, 3)
+
         if layer_past is not None:
             past_key = layer_past[0]
             past_value = layer_past[1]
@@ -403,25 +409,43 @@ class ProGenFlashAttention2(ProGenAttention):
             present = (key, value)
         else:
             present = None
+        t2_2 = time.time()
+        print(f"rotary_pos_emb: {t2_2 - t2_1}")
 
+        t3_1 = time.time()
         attn_output = flash_attn_func(
-            query,
-            key,
-            value,
+            query.half().permute(0, 2, 1, 3),
+            key.half().permute(0, 2, 1, 3),
+            value.half().permute(0, 2, 1, 3),
             dropout_p=self.attn_dropout.p,
             causal=True,
         )
+        t3_2 = time.time()
+        print(f"flash_attn_func: {t3_2 - t3_1}")
 
-        attn_output = rearrange(attn_output, "a b c d -> a c b d")
+        t4_1 = time.time()
+        attn_output = attn_output.permute(0, 2, 1, 3)
         attn_output = self._merge_heads(
             attn_output, self.num_attention_heads, self.head_dim
         )
-        attn_output = self.resid_dropout(self.out_proj(attn_output))
+        attn_output = self.out_proj(attn_output)
+        attn_output = self.resid_dropout(attn_output)
 
         outputs = (attn_output, present)
         if output_attentions:
             outputs += (None,)
+        t4_2 = time.time()
+        print(f"merge_heads: {t4_2 - t4_1}")
 
+        print("\n\n")
+
+        t_full = t4_2 - t1_0
+        print(f"split ratio: {(t1_1 - t1_0) / t_full}")
+        print(f"rotary_pos_emb ratio: {(t2_2 - t2_1) / t_full}")
+        print(f"flash_attn_func ratio: {(t3_2 - t3_1) / t_full}")
+        print(f"merge_heads ratio: {(t4_2 - t4_1) / t_full}")
+
+        breakpoint()
         return outputs
 
 
@@ -451,9 +475,11 @@ class ProGenBlock(nn.Module):
         super().__init__()
         inner_dim = config.n_inner if config.n_inner is not None else 4 * config.n_embd
         self.ln_1 = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
-        self.attn = ProGenFlashAttention2(
-            config
-        )  # if FLASH_ATTN_AVAILABLE else ProGenAttention(config)
+        self.attn = (
+            ProGenFlashAttention2(config)
+            if FLASH_ATTN_AVAILABLE
+            else ProGenAttention(config)
+        )
         self.mlp = ProGenMLP(inner_dim, config)
 
     def forward(

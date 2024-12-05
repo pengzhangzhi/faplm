@@ -89,12 +89,17 @@ tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
 sequence = "2GFLPFRGADEGLAAREAATLAARGTAARAYREDSWAVPVPRGLLGDLTARVAALGAASPPPADPLAVTLDLHHVTAEVALTTVLDAATLVHGQTRVLSAEDAAEAATAAAAATEAYLERLQDFVLFMSASVRVWRRGNAAGATGPEWDQWYTVADRDALGSAPTHLAVLGRQADALCHFVLDRVAWGTCGTPLWSGDEDLGNVVATFAGYADRLATAPRDLIM1"
 
 inputs = tokenizer(sequence, return_tensors="pt").to(device)
-
+target = inputs.input_ids[0,...]
 with torch.no_grad():
-  logits = model(inputs.input_ids, labels=inputs.input_ids).logits
+  logits = model(inputs.input_ids, labels=inputs.input_ids).logits[0,...]
 
-logits = logits[0][:-1, ...]
-target = inputs.input_ids[0, 1:]
+logits = logits[:-1, ...]
+target = target[1:]
+
+bos_token, eos_token = 3, 4
+if target[-1] in [bos_token, eos_token]:
+    logits = logits[:-1, ...]
+    target = target[:-1]
 
 # remove unused logits
 first_token, last_token = 5, 29
