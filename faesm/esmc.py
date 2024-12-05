@@ -1,3 +1,9 @@
+"""
+This file is adapted from esmc which is licensed under the EvolutionaryScale
+Cambrian Open License Agreement.
+
+This file is altered by the authors contributors to the FAESM repository.
+"""
 from __future__ import annotations
 
 flash_attn_installed = True

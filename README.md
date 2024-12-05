@@ -95,7 +95,7 @@ It's recommended to use the flash attention for training. Because in the forward
 
 ### FAESM vs. Official ESM2
 
-Below  is the comparison of peak memory usage and inference time of FAESM with the official ESM2. We show that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
+Below is the comparison of peak memory usage and inference time of FAESM with the official ESM2. We show that FAESM can save memory usage by up to 60% and inference time by up to 70% (length 1000). The benchmarking is done on ESM-650M with batch size 8, and a single A100 with 80GB of memory.
 
 ![benchmark](assets/figs/benchmark.png)
 
@@ -135,7 +135,7 @@ pytest tests/test_compare_esmc.py
 # TODOs
 
 - Training script
-- Integrate FAESM into EMSFold
+- Integrate FAESM into ESMFold
 
 # Appreciation
 
@@ -148,6 +148,15 @@ This project started as a mutual disappointment with [Alex Tong(@atong01)](https
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=pengzhangzhi/faesm&type=Date)](https://star-history.com/#pengzhangzhi/faesm&Date)
+
+# License
+
+This work is licensed under the MIT license. However, it contains altered and unaltered portions of code licensed under MIT, Apache 2.0, and Cabrian Open License Agreement.
+- ESM: MIT Licensed
+- DPLM: [Apache 2.0 Licensed](https://github.com/bytedance/dplm/blob/main/LICENSE)
+- ESMC: [See ESM Licensing](https://github.com/evolutionaryscale/esm/blob/main/LICENSE.md) in particular the [Cambrian Open License Agreement](https://www.evolutionaryscale.ai/policies/cambrian-open-license-agreement)
+
+We thank the creators of these prior works for their contributions and open licensing. We also note that model weights may have separate licensing. The ESMC 300M Model is licensed under the EvolutionaryScale Cambrian Open License Agreement. The ESMC 600M Model is licensed under the EvolutionaryScale Cambrian Non-Commercial License Agreement.
 
 # Citation
 
