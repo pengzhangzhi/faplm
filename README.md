@@ -4,7 +4,7 @@
 
 </div>
 
-**F**lash **A**ttention **P**rotein **L**anguage **M**odels (FAPLM) is an efficient PyTorch implementation of the state-of-the-art Protein language models such as [Evolutionary Scale Modeling (ESM)](https://github.com/facebookresearch/esm) family, [Progen2](https://github.com/salesforce/progen). FAPLM is designed to be more efficient than the official implementation, which can save up to 60% of memory usage and 70% of inference time. The key features of FAPLM are:
+**F**lash **A**ttention **P**rotein **L**anguage **M**odels (FAPLM) is an efficient PyTorch implementation of the state-of-the-art Protein language models such as [Evolutionary Scale Modeling (ESM)](https://github.com/facebookresearch/esm) family, and [Progen2](https://github.com/salesforce/progen). FAPLM is designed to be more efficient than the official implementation, which can save up to 60% of memory usage and 70% of inference time. The key features of FAPLM are:
 
 1. **Flash Attention**: FAESM uses the [FlashAttention](https://github.com/Dao-AILab/flash-attention) implementation, by far the most efficient implementation of the self-attention mechanism.
 2. **Scalar Dot-Product Attention (SDPA)**: FAESM also provides an implementation of the [PyTorch Scalar Dot-Product Attention](https://pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html), which is a bit slower than the FlashAttention but it's compatible with most of the system and still faster than the official ESM implementation.
