@@ -156,6 +156,12 @@ Run the script to test the errors between FAESM-C and the official ESM-C impleme
 pytest tests/test_compare_esmc.py
 ```
 
+### FAProgen2 vs. Official Progen2
+
+Save up to 60% of memory and run time by using FAProgen2.
+![benchmark_progen](assets/figs/FAProGen2_benchmark.png)
+
+
 # TODOs
 
 - Training script
