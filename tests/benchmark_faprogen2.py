@@ -7,7 +7,22 @@ import seaborn as sns
 import torch
 from transformers import AutoTokenizer
 from faesm.progen2 import ProGenForCausalLM as FAProGenForCausalLM
-from tests.progen2 import ProGenForCausalLM
+try:
+    from tests.progen2.models.progen.modeling_progen import ProGenForCausalLM
+except ImportError:
+    readme = """
+To install the original ProGen2, clone the repository and move the `progen2` directory to this tests directory:
+
+```bash
+git clone https://github.com/salesforce/progen
+mv progen/progen2 ./
+rm -rf progen
+```
+
+with the progen2 directory in the tests directory, you can run the tests involving ProGen2 in `benchmark_faprogen2.py`.
+    """
+    raise ImportError("Please download the ProGen2 model following the instructions in the README.md file:\n{}".format(readme))
+
 
 
 # Set Seaborn theme and professional settings
