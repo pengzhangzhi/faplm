@@ -98,7 +98,7 @@ import torch
 from faesm.progen2 import ProGenForCausalLM
 from transformers import AutoTokenizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-# Avilable model from HF: ["jinyuan22/ProGen2-small", "jinyuan22/ProGen2-base", "jinyuan22/ProGen2-xlarge"]
+# Available model from HF: ["jinyuan22/ProGen2-small", "jinyuan22/ProGen2-base", "jinyuan22/ProGen2-xlarge"]
 model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval()
 tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
 
