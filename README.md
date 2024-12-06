@@ -1,14 +1,14 @@
 <div align="center">
 
-# FAESM: A Drop-in Efficient Pytorch Implementation of ESM2
+# FAPLM: A Drop-in Efficient Pytorch Implementation of Protein Language Models
 
 </div>
 
-**F**lash **A**ttention **ESM** (FAESM) is an efficient PyTorch implementation of the [Evolutionary Scale Modeling (ESM)](https://github.com/facebookresearch/esm) family, which is a family of protein language models (pLMs) that can be used for various protein sequence analysis tasks. FAESM is designed to be more efficient than the official ESM implementation, which can save up to 60% of memory usage and 70% of inference time. The key features of FAESM are:
+**F**lash **A**ttention **P**rotein **L**anguage **M**odels (FAPLM) is an efficient PyTorch implementation of the state-of-the-art Protein language models such as [Evolutionary Scale Modeling (ESM)](https://github.com/facebookresearch/esm) family, [Progen2](https://github.com/salesforce/progen). FAPLM is designed to be more efficient than the official implementation, which can save up to 60% of memory usage and 70% of inference time. The key features of FAPLM are:
 
 1. **Flash Attention**: FAESM uses the [FlashAttention](https://github.com/Dao-AILab/flash-attention) implementation, by far the most efficient implementation of the self-attention mechanism.
 2. **Scalar Dot-Product Attention (SDPA)**: FAESM also provides an implementation of the [PyTorch Scalar Dot-Product Attention](https://pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html), which is a bit slower than the FlashAttention but it's compatible with most of the system and still faster than the official ESM implementation.
-3. **Same Checkpoint**: FAESM is a drop-in replacement of ESM2, having the same API and checkpoint.
+3. **Same Checkpoint**: FAESM is a drop-in replacement, having the same API and checkpoint as the official implementations.
 
 <div align="center">
   <img src="assets/figs/5-Lines-of-Code-to-Get-Started!.png" alt="Figure" width="1000">
@@ -16,7 +16,7 @@
 
 # Table of Contents
 
-- [FAESM: A Drop-in Efficient Pytorch Implementation of ESM2](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm2)
+- [FAPLM: A Drop-in Efficient Pytorch Implementation of Protein Language Models](#faesm-a-drop-in-efficient-pytorch-implementation-of-esm2)
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -37,7 +37,7 @@ pip install flash-attn --no-build-isolation
 
 Having trouble installing flash attention but still want to use it? A workaround is docker container. You can use the official nvidia pytorch [containers](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) which have all the dependencies for flash attention.
 
-3. Install FAESM from GitHub:
+3. Install FAPLM from GitHub:
 
 ```bash
 # if you want to use flash attention
