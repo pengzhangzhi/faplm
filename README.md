@@ -99,7 +99,7 @@ from faesm.progen2 import ProGenForCausalLM
 from transformers import AutoTokenizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # Avilable model from HF: ["jinyuan22/ProGen2-small", "jinyuan22/ProGen2-base", "jinyuan22/ProGen2-xlarge"]
-model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval() 
+model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval()
 tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
 
 sequence = "2GFLPFRGADM1"
@@ -115,7 +115,6 @@ Working on an example training script for MLM training on Uniref50. For now, you
 It's recommended to use the flash attention for training. Because in the forward pass, it unpads the input sequences to remove all the padding tokens, which 1) speeds up the training & reduces the memory usage and 2) it doesn't require batching sequences of similar length to avoid padding. Also, SDPA is still a good alternative if you can't install flash attention as used in [DPLM](https://github.com/bytedance/dplm).
 
 # Benchmarking
-
 
 ### FAESM vs. Official ESM2
 
@@ -160,7 +159,6 @@ pytest tests/test_compare_esmc.py
 
 Save up to 60% of memory and run time by using FAProgen2.
 ![benchmark_progen](assets/figs/FAProGen2_benchmark.png)
-
 
 # TODOs
 

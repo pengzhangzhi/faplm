@@ -1,8 +1,10 @@
 import torch
 from esm.models.esmc import ESMC
 from esm.sdk.api import ESMProtein, LogitsConfig
-from faesm.esmc import ESMC as FAESMC
 from huggingface_hub import login
+
+from faesm.esmc import ESMC as FAESMC
+
 
 # Function for benchmarking two models
 def benchmark_flash_vs_official(sequence, use_flash_attn):
@@ -29,15 +31,18 @@ def benchmark_flash_vs_official(sequence, use_flash_attn):
 
     return logits_diff.item(), embeddings_diff.item()
 
+
 # Define the sequence
 seq = "MPGWFKKAWYGLASLLSFSSFILIIVALVVPHWLSGKILCQTGVDLVNATDRELVKFIGDIYYGLFRGCKVRQCGLGGRQSQFTIFPHLVKELNAGLHVMILLLLFLALALALVSMGFAILNMIQVPYRAVSGPGGICLWNVLAGGVVALAIASFVAAVKFHDLTERIANFQEKLFQFVVVEEQYEESFWICVASASAHAANLVVVAISQIPLPEIKTKIEEATVTAEDILY"
 sequence = [seq]
 
 # Login to Hugging Face Hub (use your API key with "Read" permission)
-login("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")
+login("YOUR_API_KEY")
 
 # Benchmark with `use_flash_attn=True`
-logits_diff_flash, embeddings_diff_flash = benchmark_flash_vs_official(sequence, use_flash_attn=True)
+logits_diff_flash, embeddings_diff_flash = benchmark_flash_vs_official(
+    sequence, use_flash_attn=True
+)
 print("[Flash Attention Enabled]")
 print("Max absolute error in logits:", logits_diff_flash)
 print("Max absolute error in embeddings:", embeddings_diff_flash)
@@ -45,7 +50,9 @@ assert logits_diff_flash < 1, f"Logits diff: {logits_diff_flash}"
 assert embeddings_diff_flash < 0.1, f"Embeddings diff: {embeddings_diff_flash}"
 
 # Benchmark with `use_flash_attn=False`
-logits_diff_no_flash, embeddings_diff_no_flash = benchmark_flash_vs_official(sequence, use_flash_attn=False)
+logits_diff_no_flash, embeddings_diff_no_flash = benchmark_flash_vs_official(
+    sequence, use_flash_attn=False
+)
 print("\n[Flash Attention Disabled]")
 print("Max absolute error in logits:", logits_diff_no_flash)
 print("Max absolute error in embeddings:", embeddings_diff_no_flash)

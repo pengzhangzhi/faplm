@@ -8,6 +8,7 @@ import torch
 from transformers import EsmForMaskedLM, EsmTokenizer
 
 from faesm.esm import FAEsmForMaskedLM
+
 # from tests.utils import generate_random_esm2_inputs
 
 # Set Seaborn theme and professional settings
@@ -26,6 +27,7 @@ plt.rcParams.update(
         "legend.fontsize": 14,  # Larger legend font
     }
 )
+
 
 def generate_random_esm2_inputs(
     tokenizer, batch_size=3, min_seq_length=5, max_seq_length=10, device="cuda"
@@ -48,6 +50,7 @@ def generate_random_esm2_inputs(
     )
     esm_input = {k: v.to(device) for k, v in esm_input.items()}
     return esm_input
+
 
 def benchmark_torch_memory(f, *args, **kwargs):
     torch.cuda.reset_peak_memory_stats()

@@ -6,7 +6,9 @@ import pytest
 import seaborn as sns
 import torch
 from transformers import AutoTokenizer
+
 from faesm.progen2 import ProGenForCausalLM as FAProGenForCausalLM
+
 try:
     from tests.progen2.models.progen.modeling_progen import ProGenForCausalLM
 except ImportError:
@@ -21,8 +23,11 @@ rm -rf progen
 
 with the progen2 directory in the tests directory, you can run the tests involving ProGen2 in `benchmark_faprogen2.py`.
     """
-    raise ImportError("Please download the ProGen2 model following the instructions in the README.md file:\n{}".format(readme))
-
+    raise ImportError(
+        "Please download the ProGen2 model following the instructions in the README.md file:\n{}".format(
+            readme
+        )
+    )
 
 
 # Set Seaborn theme and professional settings
@@ -83,12 +88,8 @@ def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, r
     device1 = "cuda" if torch.cuda.is_available() else "cpu"
     # device2 = "cuda:1" if torch.cuda.is_available() else "cpu"
 
-    progen2 = (
-        ProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
-    )
-    fa_progen2 = (
-        FAProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
-    )
+    progen2 = ProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
+    fa_progen2 = FAProGenForCausalLM.from_pretrained(model_version).to(dtype).to("cpu").eval()
 
     progen2_memory_usage, fa_progen2_memory_usage = [], []
     progen2_inference_times, fa_progen2_inference_times = [], []
@@ -146,9 +147,7 @@ def test_progen2_vs_faprogen2_benchmark(model_version, dtype, max_seq_lengths, r
         for fa, progen2 in zip(fa_progen2_inference_times, progen2_inference_times)
     ]
 
-    fig, axes = plt.subplots(
-        1, 2, figsize=(20, 8)
-    )  # Larger figure for better resolution
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))  # Larger figure for better resolution
 
     # Left Plot: Memory Benchmark
     ax1 = axes[0]
