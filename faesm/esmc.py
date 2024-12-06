@@ -473,6 +473,7 @@ class ESMC(nn.Module):
         Returns:
             ESMCOutput: The output of the ESMC model.
         """
+        sequence_id = sequence_tokens == self.tokenizer.pad_token_id
         if self.use_flash_attn:
             sequence_tokens, cu_seqlens, max_seqlen, _, pad_fn = unpad(
                 sequence_tokens.unsqueeze(-1), ~sequence_id
@@ -484,7 +485,6 @@ class ESMC(nn.Module):
             pad_fn = lambda x: x
             cu_seqlens = None
             max_seqlen = None
-            sequence_id = sequence_tokens == self.tokenizer.pad_token_id
 
         x = self.embed(sequence_tokens)
         x, _ = self.transformer(
