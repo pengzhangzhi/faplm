@@ -53,9 +53,10 @@ pip install faesm
 
 ## ESM2
 
-FAESM is a drop-in replacement for the official ESM implementation. You can use the same code as you would use the official ESM implementation. For example:import torch
+FAESM is a drop-in replacement for the official ESM implementation. You can use the same code as you would use the official ESM implementation. For example:
 
 ```python
+import torch
 from faesm.esm import FAEsmForMaskedLM
 
 # Step 1: Load the FAESM model
@@ -74,9 +75,11 @@ print("Repr shape:", outputs['last_hidden_state'].shape)  # (batch_size, sequenc
 ```
 
 
-For generative protein language like ProGen2:
 
-### ProGen2
+
+## ProGen2
+
+For generative protein language like ProGen2.
 
 ```python
 import torch
