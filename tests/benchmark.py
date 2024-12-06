@@ -8,7 +8,7 @@ import torch
 from transformers import EsmForMaskedLM, EsmTokenizer
 
 from faesm.esm import FAEsmForMaskedLM
-from tests.utils import generate_random_esm2_inputs
+# from tests.utils import generate_random_esm2_inputs
 
 # Set Seaborn theme and professional settings
 sns.set_theme(style="white")  # Remove grid by using "white"
@@ -27,6 +27,27 @@ plt.rcParams.update(
     }
 )
 
+def generate_random_esm2_inputs(
+    tokenizer, batch_size=3, min_seq_length=5, max_seq_length=10, device="cuda"
+):
+    """Generate random ESM2 model inputs."""
+    random_lengths = torch.randint(
+        min_seq_length, max_seq_length + 1, (batch_size,), device=device
+    )
+    random_tokens = [
+        torch.randint(low=4, high=29, size=(length,), device=device).tolist()
+        for length in random_lengths
+    ]
+    sequences = ["".join(tokenizer.convert_ids_to_tokens(seq)) for seq in random_tokens]
+    esm_input = tokenizer.batch_encode_plus(
+        sequences,
+        add_special_tokens=True,
+        padding=True,
+        truncation=True,
+        return_tensors="pt",
+    )
+    esm_input = {k: v.to(device) for k, v in esm_input.items()}
+    return esm_input
 
 def benchmark_torch_memory(f, *args, **kwargs):
     torch.cuda.reset_peak_memory_stats()
@@ -51,7 +72,7 @@ def benchmark_inference_time(f, *args, **kwargs):
             "facebook/esm2_t33_650M_UR50D",
             8,
             torch.float16,
-            [100, 200, 300, 400, 500, 600, 700, 800, 1000],
+            [100, 200, 300, 400, 500, 600, 700],
             10,
         )
     ],

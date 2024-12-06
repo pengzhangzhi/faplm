@@ -53,9 +53,10 @@ pip install faesm
 
 ## ESM2
 
-FAESM is a drop-in replacement for the official ESM implementation. You can use the same code as you would use the official ESM implementation. For example:import torch
+FAESM is a drop-in replacement for the official ESM implementation. You can use the same code as you would use the official ESM implementation. For example:
 
 ```python
+import torch
 from faesm.esm import FAEsmForMaskedLM
 
 # Step 1: Load the FAESM model
@@ -73,6 +74,47 @@ print("Repr shape:", outputs['last_hidden_state'].shape)  # (batch_size, sequenc
 # Step 5: start the repo if the code works for u!
 ```
 
+
+
+
+## ProGen2
+
+For generative protein language like ProGen2.
+
+```python
+import torch
+from faesm.progen2 import ProGenForCausalLM
+from transformers import AutoTokenizer
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# Avilable model from HF: ["jinyuan22/ProGen2-small", "jinyuan22/ProGen2-base", "jinyuan22/ProGen2-xlarge"]
+model = ProGenForCausalLM.from_pretrained("jinyuan22/ProGen2-small").to(torch.float16).to(device).eval() 
+tokenizer = AutoTokenizer.from_pretrained("jinyuan22/ProGen2-small")
+
+sequence = "2GFLPFRGADEGLAAREAATLAARGTAARAYREDSWAVPVPRGLLGDLTARVAALGAASPPPADPLAVTLDLHHVTAEVALTTVLDAATLVHGQTRVLSAEDAAEAATAAAAATEAYLERLQDFVLFMSASVRVWRRGNAAGATGPEWDQWYTVADRDALGSAPTHLAVLGRQADALCHFVLDRVAWGTCGTPLWSGDEDLGNVVATFAGYADRLATAPRDLIM1"
+
+inputs = tokenizer(sequence, return_tensors="pt").to(device)
+target = inputs.input_ids[0,...]
+with torch.no_grad():
+  logits = model(inputs.input_ids, labels=inputs.input_ids).logits[0,...]
+
+logits = logits[:-1, ...]
+target = target[1:]
+
+bos_token, eos_token = 3, 4
+if target[-1] in [bos_token, eos_token]:
+    logits = logits[:-1, ...]
+    target = target[:-1]
+
+# remove unused logits
+first_token, last_token = 5, 29
+logits = logits[:, first_token:(last_token+1)]
+target = target - first_token
+
+ce_eval = torch.nn.functional.cross_entropy(input=logits.view(-1, logits.size(-1)), target=target.view(-1), reduction="mean").item()
+print(ce_eval)
+assert abs(ce_eval - 2.4) < 0.1 # 2.4 is the reference ce for the official progen2-small
+```
+
 ## ESM-C
 
 Right after EvolutionaryScale release [ESM-C](https://www.evolutionaryscale.ai/blog/esm-cambrian), we follow up with the flash attention version of ESM-C in FAESM. You can run ESM-C easily with the following code:
@@ -85,6 +127,7 @@ input_ids = model.tokenizer(sequence, return_tensors="pt")["input_ids"].to("cuda
 output = model(input_ids)
 print(output.sequence_logits.shape)
 print(output.embeddings.shape)
+
 ```
 
 ### Training \[WIP\]
@@ -93,6 +136,7 @@ Working on an example training script for MLM training on Uniref50. For now, you
 It's recommended to use the flash attention for training. Because in the forward pass, it unpads the input sequences to remove all the padding tokens, which 1) speeds up the training & reduces the memory usage and 2) it doesn't require batching sequences of similar length to avoid padding. Also, SDPA is still a good alternative if you can't install flash attention as used in [DPLM](https://github.com/bytedance/dplm).
 
 # Benchmarking
+
 
 ### FAESM vs. Official ESM2
 
