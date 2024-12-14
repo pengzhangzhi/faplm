@@ -117,7 +117,7 @@ repos:
         require_serial: true
         args:
           - --skip=logs/**,data/**,*.ipynb
-          - --ignore-words-list=ot,hist
+          - --ignore-words-list=ot,hist,anguage
 
   # jupyter notebook linting
   - repo: https://github.com/nbQA-dev/nbQA
