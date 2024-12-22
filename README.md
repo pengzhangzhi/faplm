@@ -29,13 +29,30 @@
 # Installation
 
 1. Install PyTorch 1.12 and above if you haven't: `pip install pytorch`.
-2. \[*Optional*\]: Install flash-attn if you want to use the flash attention implementation, which is the fastest and most efficient implementation. However, it can be a bit tricky to install so you can skip this step without any problem. In that case, skip this step and you will use Pytorch SDPA attention.
+2. \[*Optional*\]: Install flash-attn if you want to use the flash attention implementation.
 
 ```bash
 pip install flash-attn --no-build-isolation
 ```
 
-Having trouble installing flash attention but still want to use it? A workaround is docker container. You can use the official nvidia pytorch [containers](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) which have all the dependencies for flash attention.
+<details>
+<summary>Have trouble installing flash attention?</summary>
+
+You can create a clean conda env and install the following CUDA dev tools:
+```bash
+conda install conda-forge::cudatoolkit-dev -y
+conda install nvidia/label/cuda-12.3.0::cuda-toolkit -y
+```
+Then you can install pytorch and flash attention:
+```
+# Install a torch version that you like.
+pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+pip install flash-attn --no-build-isolation
+```
+
+Another workaround is docker container. You can use the official nvidia pytorch [containers](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) which have all the dependencies for flash attention.
+</details>
+
 
 3. Install FAPLM from GitHub:
 
