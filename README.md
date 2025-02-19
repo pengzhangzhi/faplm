@@ -38,16 +38,31 @@ pip install flash-attn --no-build-isolation
 <details>
 <summary>Have trouble installing flash attention?</summary>
 
-In a clean conda env, install the `cuda-toolkit 12.3.0` for compilation:
+create clean conda env, and install the `cuda-toolkit 12.3.0` for compilation:
 ```bash
-conda install nvidia/label/cuda-12.3.0::cuda-toolkit -y
+# Create new environment with Python 3.10
+micromamba create -n flash-attn python=3.10 -y
+
+# Activate the environment
+micromamba activate flash-attn
+
+# Install CUDA toolkit
+micromamba install -c nvidia/label/cuda-12.3.0 cuda-toolkit -y
+
+# Install PyTorch with CUDA support (using pip for latest version)
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+# Install ninja (needed for building)
+pip install ninja
+
+# Install flash-attention
+pip install flash-attn --no-build-isolation --no-cache-dir
+
+# Optional: verify installations
+python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 ```
-Then install pytorch and flash attention:
-```
-# Install a torch version that you like.
-pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
-pip install flash-attn --no-build-isolation
-```
+
 
 Another workaround is docker container. You can use the official nvidia pytorch [containers](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) which have all the dependencies for flash attention.
 </details>
