@@ -84,7 +84,20 @@ pip install faesm
 
 ## ESM2
 
-FAESM is a drop-in replacement for the official ESM implementation. You can use the same code as you would use the official ESM implementation. For example:
+FAESM is also available on [Huggingface](https://huggingface.co/fredzzp/esm2_t33_650M_UR50D)! You can use native Huggingface API to run a accelerated version of ESM2:
+```python
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+model = AutoModelForMaskedLM.from_pretrained("fredzzp/esm2_t33_650M_UR50D", trust_remote_code=True).to("cuda").eval().half()
+tokenizer = AutoTokenizer.from_pretrained("fredzzp/esm2_t33_650M_UR50D")
+
+input_ids = tokenizer("AGC", return_tensors="pt").input_ids.to("cuda")
+output = model(input_ids)
+print(output['logits'].shape)
+print(output['last_hidden_state'].shape)
+
+```
+If you have faplm installed:
 
 ```python
 import torch
