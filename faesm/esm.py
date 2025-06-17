@@ -56,6 +56,13 @@ class FAEsmSelfAttention(EsmSelfAttention):
             self.rotary_embeddings = FAEsmRotaryEmbedding(dim=self.attention_head_size)
 
     def forward(self, **kwargs):
+        if kwargs.get("output_attentions", False):
+            logger.warning_once(
+                "output_attentions=True is not supported for FlashAttention or SDPA."
+                "Falling back to standard attention."
+            )
+            return self.sdpa_forward(**kwargs)
+
         if self.config.use_fa:
             return self.fa_forward(**kwargs)
         else:
@@ -117,13 +124,21 @@ class FAEsmSelfAttention(EsmSelfAttention):
         if head_mask is not None:
             raise NotImplementedError
 
-        query_layer = query_layer.contiguous()
-        key_layer = key_layer.contiguous()
-        value_layer = value_layer.contiguous()
+        # Fall back to standard attention if `output_attentions` is true
+        if output_attentions:
+            attn_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+            if attention_mask is not None:
+                attn_scores = attn_scores + attention_mask
+            attn_probs = F.softmax(attn_scores, dim=-1)
+            context_layer = torch.matmul(attn_probs, value_layer)
+        else:
+            query_layer = query_layer.contiguous()
+            key_layer = key_layer.contiguous()
+            value_layer = value_layer.contiguous()
 
-        context_layer = F.scaled_dot_product_attention(
-            query_layer, key_layer, value_layer, attn_mask=attention_mask, scale=1.0
-        )
+            context_layer = F.scaled_dot_product_attention(
+                query_layer, key_layer, value_layer, attn_mask=attention_mask, scale=1.0
+            )
 
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
@@ -131,6 +146,8 @@ class FAEsmSelfAttention(EsmSelfAttention):
 
         outputs = (context_layer,)
 
+        if output_attentions:
+            outputs += (attn_probs,)
         if self.is_decoder:
             outputs = outputs + (past_key_value,)
         return outputs
@@ -590,18 +607,26 @@ class FAEsmForMaskedLM(EsmForMaskedLM):
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
             output_hidden_states=output_hidden_states,  # For the hidden states
+            output_attentions=output_attentions,
         )
         sequence_output = outputs[0]
         logits = self.lm_head(sequence_output)
 
+        result = {"logits": logits, "last_hidden_state": sequence_output}
+
         if outputs.hidden_states is not None:
-            result = {
-                "logits": logits,
-                "last_hidden_state": sequence_output,
-                "hidden_states": [x.unsqueeze(0) for x in outputs.hidden_states],
-            }
-        else:
-            result = {"logits": logits, "last_hidden_state": sequence_output}
+            result.update(
+                {
+                    "hidden_states": [x.unsqueeze(0) for x in outputs.hidden_states],
+                }
+            )
+        if outputs.attentions is not None:
+            result.update(
+                {
+                    "attentions": [x.unsqueeze(0) for x in outputs.attentions],
+                }
+            )
+
         return result
 
     @classmethod
