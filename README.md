@@ -56,7 +56,9 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install ninja
 
 # Install flash-attention
-pip install flash-attn --no-build-isolation --no-cache-dir
+pip install "flash-attn==2.7.4.post1" \
+    --extra-index-url https://github.com/Dao-AILab/flash-attention/releases/download
+
 
 # Optional: verify installations
 python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
