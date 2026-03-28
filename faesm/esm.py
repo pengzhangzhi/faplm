@@ -26,8 +26,8 @@ from einops import rearrange
 from torch.nn import functional as F
 from tqdm import tqdm
 from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
+from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 from transformers.models.esm.modeling_esm import (
-    BaseModelOutputWithPastAndCrossAttentions,
     BaseModelOutputWithPoolingAndCrossAttentions,
     EsmAttention,
     EsmContactPredictionHead,
